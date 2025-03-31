@@ -7,6 +7,9 @@ yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
 
+# misc
+.DS_Store
+
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
@@ -39,6 +42,7 @@ bower_components
 build/Release
 
 # Dependency directories
+/node_modules
 node_modules/
 jspm_packages/
 
@@ -134,3 +138,13 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# production
+/build
+
+# testing
+/coverage
+
+
+.idea/
+.vscode/
