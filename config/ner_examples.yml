@@ -1,6 +1,24 @@
 - text: "купити СЕС у Київській області"
   entities:
     - text: "СЕС"
-      label: "DEVICE"
+      label: "CЕС"
     - text: "Київській області"
+      label: "LOCATION"
+- text: "збудувати сонячну електростанцію у Львові"
+  entities:
+    - text: "сонячну електростанцію"
+      label: "CЕС"
+    - text: "Львові"
+      label: "LOCATION"
+- text: "збудувати сонячну електростанцію у Львові"
+  entities:
+    - text: "сонячну електростанцію"
+      label: "CЕС"
+    - text: "Львові"
+      label: "LOCATION"
+- text: "запроєктувати автономну сонячну електростанцію у Смирні"
+  entities:
+    - text: "автономну сонячну електростанцію"
+      label: "CЕС"
+    - text: "Смирні"
       label: "LOCATION"

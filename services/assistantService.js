@@ -41,22 +41,22 @@ async function processUserInput(userInput) {
     console.log('[NER]', nerEntities);
     console.log('[Intent]', intent);
 
-    return { nerEntities, intent };
+    const response = await client.responses.create({
+        model: 'gpt-3.5-turbo',
+        instructions: 'Ти віртуальний асистент для проєктування СЕС',
+        input: userInput,
+    });
 
-    // const response = await client.responses.create({
-    //     model: 'gpt-3.5-turbo',
-    //     instructions: 'Ти віртуальний асистент для проєктування СЕС',
-    //     input: userInput,
-    //   });
+    const answer = response.output_text
 
-    //   console.log(response.output_text);
-
-    //   return response.output_text;
+    console.log(answer);
 
     // const completion = await client.createChatCompletion({
     //     model: "",
     //     messages: [{ role: "user", content: userInput }],
     // });
+
+    return { nerEntities, intent, answer };
 
     // const intent = extractIntentFromText(completion.data.choices[0].message.content);
 
