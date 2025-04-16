@@ -1,22 +1,57 @@
 import OpenAI from 'openai';
+import fs from 'fs';
+import path from 'path';
+import yaml from 'js-yaml';
 import dotenv from "dotenv";
+import { buildNERPrompt, buildTextcatPrompt } from '../helpers/index.js';
 
 dotenv.config();
+
+const nerExamples = yaml.load(fs.readFileSync(path.resolve('./config/ner_examples.yml'), 'utf8'));
+const textcatExamples = JSON.parse(fs.readFileSync(path.resolve('./config/textcat_examples.json'), 'utf8'));
 
 const client = new OpenAI({
     apiKey: process.env['OPENAI_API_KEY'],
 });
 
 async function processUserInput(userInput) {
-    const response = await client.responses.create({
-        model: 'gpt-3.5-turbo',
-        instructions: 'Ти віртуальний асистент для проєктування СЕС',
-        input: userInput,
-      });
-      
-      console.log(response.output_text);
+    const nerPrompt = buildNERPrompt(userInput, nerExamples);
+    const textcatPrompt = buildTextcatPrompt(userInput, textcatExamples);
 
-      return response.output_text;
+    const [nerResponse, textcatResponse] = await Promise.all([
+        client.chat.completions.create({
+            model: 'gpt-3.5-turbo',
+            messages: [
+                { role: 'system', content: 'Ти допомагаєш витягати сутності з тексту.' },
+                { role: 'user', content: nerPrompt }
+            ]
+        }),
+        client.chat.completions.create({
+            model: 'gpt-3.5-turbo',
+            messages: [
+                { role: 'system', content: 'Ти класифікуєш наміри користувача.' },
+                { role: 'user', content: textcatPrompt }
+            ]
+        })
+    ]);
+
+    const nerEntities = JSON.parse(nerResponse.choices[0].message.content);
+    const intent = textcatResponse.choices[0].message.content.trim();
+
+    console.log('[NER]', nerEntities);
+    console.log('[Intent]', intent);
+
+    return { nerEntities, intent };
+
+    // const response = await client.responses.create({
+    //     model: 'gpt-3.5-turbo',
+    //     instructions: 'Ти віртуальний асистент для проєктування СЕС',
+    //     input: userInput,
+    //   });
+
+    //   console.log(response.output_text);
+
+    //   return response.output_text;
 
     // const completion = await client.createChatCompletion({
     //     model: "",
@@ -38,7 +73,7 @@ function extractIntentFromText(text) {
     return "інше";
 }
 
-export const assistant = { 
-    processUserInput 
+export const assistant = {
+    processUserInput
 };
 

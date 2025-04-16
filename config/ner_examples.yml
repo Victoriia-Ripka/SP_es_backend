@@ -1,0 +1,6 @@
+- text: "купити СЕС у Київській області"
+  entities:
+    - text: "СЕС"
+      label: "DEVICE"
+    - text: "Київській області"
+      label: "LOCATION"

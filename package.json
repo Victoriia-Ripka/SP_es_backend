@@ -2,7 +2,7 @@
   "name": "sp_es_backend",
   "version": "1.0.0",
   "description": "The software of Thesis on \"Software for optimal tuning of a solar power plant based on machine learning\"",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -13,6 +13,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^4.21.2",
+    "js-yaml": "^4.1.0",
     "mongoose": "^8.13.2",
     "morgan": "^1.10.0",
     "openai": "^4.94.0",
