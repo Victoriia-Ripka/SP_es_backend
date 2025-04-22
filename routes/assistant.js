@@ -1,12 +1,8 @@
 import express from "express";
-import { assistant } from "../services/assistantService.js";
+import { getAnswer } from "../controllers/assistantController.js";
 
 const router = express.Router();
 
-router.post("/ask", async (req, res) => {
-    const { message } = req.body;
-    const { nerEntities, intent, answer } = await assistant.processUserInput(message);
-    res.json({ nerEntities, intent, answer });
-});
+router.post("/ask", getAnswer);
 
 export default router;
