@@ -18,23 +18,25 @@ const client = new OpenAI({
 async function processUserInput(userInput, pv_user_data) {
     const { nerEntities, intent } = await extractIntentAndEntitiesFromText(userInput);
 
-    const knowledge = nerEntities.length > 0 ? getKnowledge(nerEntities[0]) :  getKnowledge('');
+    switch (intent) {
+        case "інформація":
+            const answer = await giveInformationFromKB(nerEntities, userInput, pv_user_data);
+            // console.log(nerEntities, intent)
+            // console.log(answer)
+            return { answer, updated_user_data: pv_user_data };
 
-    const response = await client.responses.create({
-        model: 'gpt-3.5-turbo',
-        instructions: createInstruction(pv_user_data, knowledge),
-        input: userInput,
-    });
+        case 'привітання':
+            return { answer: "Привіт", updated_user_data: pv_user_data };
 
-    const answer = response.output_text;
+        case 'прощання':
+            return { answer: "Бувай", updated_user_data: pv_user_data };
+    }
 
-    const updated_user_data = pv_user_data;
+
     // if (intent === "орендувати") {
     //     const cars = await Car.find({});
     //     return `Ось машини, які доступні:\n${cars.map(c => c.brand + " " + c.model).join("\n")}`;
     // }
-
-    return { nerEntities, intent, answer, updated_user_data };
 }
 
 function createInstruction(pv_user_data, knowledge) {
@@ -72,7 +74,7 @@ async function extractIntentAndEntitiesFromText(userInput) {
         })
     ]);
 
-    const nerEntities = JSON.parse(nerResponse.choices[0].message.content);
+    const nerEntities = JSON.parse(nerResponse.choices[0].message.content.trim());
     const intent = textcatResponse.choices[0].message.content.trim();
 
     console.log('[INFO NER]', nerEntities);
@@ -81,13 +83,37 @@ async function extractIntentAndEntitiesFromText(userInput) {
     return { nerEntities, intent };
 }
 
-function getKnowledge(entities) {
+function getKnowledge(field, detail) {
     try {
-        const data = loadKnowledgeBase(entities);
-        res.json(data);
+        return loadKnowledgeBase(field, detail);
     } catch (err) {
-        throw new Error(`Не вдалося завантажити базу знань для: ${entity}`);
+        throw new Error(`Не вдалося завантажити базу знань для: ${field}`);
     }
+}
+
+async function giveInformationFromKB(nerEntities, userInput, pv_user_data) {
+    let field, detail;
+
+    nerEntities.forEach(entity => {
+        if (entity.label === "CЕС") {
+            field = entity.label;
+        } else if (entity.label === "характеристика") {
+            detail = entity.text;
+        }
+    });
+
+    // console.log("field: ", field, "detail: ", detail)
+
+    const knowledge = getKnowledge(field, detail);
+    // console.log(knowledge)
+
+    const response = await client.responses.create({
+        model: 'gpt-3.5-turbo',
+        instructions: createInstruction(pv_user_data, knowledge),
+        input: userInput,
+    });
+
+    return response.output_text;
 }
 
 export const assistant = {

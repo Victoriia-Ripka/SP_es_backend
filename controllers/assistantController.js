@@ -1,7 +1,8 @@
 import { assistant } from "../services/assistantService.js";
 
-export function getAnswer( req, res ) {
-    const { message, data } = req.body;
-    const { nerEntities, intent, answer, updated_user_data } = assistant.processUserInput(message, data);
-    res.status(200).json({ nerEntities, intent, answer, updated_user_data });
+export async function getAnswer( req, res ) {
+    const { message, pv_user_data } = req.body;
+    const { answer, updated_user_data } = await assistant.processUserInput(message, pv_user_data);
+    console.log("[INFO] ", answer, updated_user_data)
+    res.status(200).json({ answer, updated_user_data });
 }
