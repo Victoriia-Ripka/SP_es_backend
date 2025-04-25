@@ -36,3 +36,23 @@
   entities:
     - text: "інвертор"
       label: "елемент СЕС"
+- text: "10"
+  entities:
+    - text: "10"
+      label: "число"
+- text: "девʼять"
+  entities:
+    - text: "девʼять"
+      label: "число"
+- text: "двадцять два"
+  entities:
+    - text: "двадцять два"
+      label: "число"
+- text: "5.5"
+  entities:
+    - text: "5.5"
+      label: "число"
+- text: "7,5"
+  entities:
+    - text: "7,5"
+      label: "число"

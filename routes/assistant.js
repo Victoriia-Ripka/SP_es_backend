@@ -4,6 +4,6 @@ import { getAnswer, startComunication } from "../controllers/assistantController
 const router = express.Router();
 
 router.post("/ask", getAnswer);
-router.get("/start", startComunication);
+router.post("/start", startComunication);
 
 export default router;

@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
 import dotenv from "dotenv";
-import { buildNERPrompt, buildTextcatPrompt } from '../helpers/index.js';
+import { buildNERPrompt, buildTextcatPrompt, processInputWithGPT } from '../helpers/index.js';
 import { loadKnowledgeBase } from './knowledgeBaseService.js';
 
 dotenv.config();
@@ -15,45 +15,101 @@ const client = new OpenAI({
     apiKey: process.env['OPENAI_API_KEY'],
 });
 
-function sendFirstMesssage(pv_user_data){
-
-    const answer = `Привіт. Я є експертною системою для проєктування СЕС. Яка потужність СЕС тобі потрібна?`
-    const updated_user_data = {...pv_user_data, intent: 'визначити потужність'}
-
-    return { answer, updated_user_data };
-    // const knowledge = getKnowledge("СЕС", detail);
-
-    // const response = await client.responses.create({
-    //     model: 'gpt-3.5-turbo',
-    //     instructions: createInstruction("", knowledge),
-    //     input: userInput,
-    // });
-
-    // return response.output_text;
+function sendFirstMesssage(pv_user_data) {
+    const answer = `Привіт. Я є експертною системою для проєктування СЕС. Яка потужність СЕС тобі потрібна?`;
+    pv_user_data["intent"] = 'визначити потужність';
+    return { answer, updated_user_data: pv_user_data };
 }
 
 async function processUserInput(userInput, pv_user_data) {
-    const { nerEntities, intent } = await extractIntentAndEntitiesFromText(userInput);
+    // console.log(pv_user_data)
 
-    switch (intent) {
-        case "інформація":
-            const answer = await giveInformationFromKB(nerEntities, userInput, pv_user_data);
-            // console.log(nerEntities, intent)
-            // console.log(answer)
-            return { answer, updated_user_data: pv_user_data };
+    let nerEntities, intent;
 
-        case 'привітання':
-            return { answer: "Привіт", updated_user_data: pv_user_data };
-
-        case 'прощання':
-            return { answer: "Бувай", updated_user_data: pv_user_data };
+    if (pv_user_data["intent"] === '') {
+        ({ nerEntities, intent } = await extractIntentAndEntitiesFromText(userInput));
+    } else {
+        intent = pv_user_data["intent"];
+        // TOFIX?
+        nerEntities = '';
     }
 
+    let answer, updated_user_data;
 
-    // if (intent === "орендувати") {
-    //     const cars = await Car.find({});
-    //     return `Ось машини, які доступні:\n${cars.map(c => c.brand + " " + c.model).join("\n")}`;
-    // }
+    switch (intent) {
+        case "визначити потужність":
+            ({ answer, updated_user_data } = await handlePowerIntent(userInput, pv_user_data));
+            break;
+
+        case "інформація":
+            answer = await giveInformationFromKB(nerEntities, userInput, pv_user_data);
+            updated_user_data = pv_user_data;
+            break;
+
+        case 'привітання':
+            answer = "Привіт";
+            updated_user_data = pv_user_data;
+            break;
+
+        case 'прощання':
+            answer = "Бувай";
+            updated_user_data = pv_user_data;
+            break;
+
+        // TODO
+        default:
+            break;
+    }
+
+    return { answer, updated_user_data };
+}
+
+async function handlePowerIntent(userInput, pv_user_data) {
+    const content = 'Якщо повідомлення користувача містить число (цифрами або словами) - поверни true. Інакше поверни false. Поверни тільки "true" або "false".'
+    const processedIsANumber = await processInputWithGPT(content, userInput);
+
+    let answer, updated_user_data;
+
+    if (processedIsANumber === 'true') {
+        let pvPower = verifyNumberOrString(userInput);
+        if(typeof(pvPower) == 'string'){
+            userInput = verifyNumberOrString(await transformStringToNumber(pvPower));
+        }
+        
+        if (userInput > 0 && userInput < 15) {
+            // TOFIX flexable answer
+            answer = "Який тип СЕС тобі потрібен?";
+            updated_user_data = await rewritePVUserData(pv_user_data, userInput, "power");
+        } else {
+            answer = "Я можу запропонувати СЕС тільки до 15кВт";
+            updated_user_data = pv_user_data;
+        }
+
+    } else {
+        answer = "third else";
+        updated_user_data = pv_user_data;
+        // console.log("third option: ", answer, updated_user_data)
+    }
+
+    return { answer, updated_user_data };
+}
+
+// TODO: function керує напрямок розмови
+
+async function rewritePVUserData(pv_user_data, value, property) {
+    pv_user_data[property] = value;
+    return pv_user_data;
+}
+
+function verifyNumberOrString(value) {
+    const num = parseFloat(value);
+    return isNaN(num) ? value : num;
+}
+
+async function transformStringToNumber(value) {
+    const content =  'Користувач написав число словами. Твоя задача повернути це число цифрами. Відповідь повинна містити тільки число';
+    const processedUserInputNumber = await processInputWithGPT(content, value);
+    return isNaN(processedUserInputNumber) ? value : processedUserInputNumber;
 }
 
 function createInstruction(pv_user_data, knowledge) {
@@ -74,22 +130,11 @@ async function extractIntentAndEntitiesFromText(userInput) {
     const nerPrompt = buildNERPrompt(userInput, nerExamples);
     const textcatPrompt = buildTextcatPrompt(userInput, textcatExamples);
 
-    const [nerResponse, textcatResponse] = await Promise.all([
-        client.chat.completions.create({
-            model: 'gpt-3.5-turbo',
-            messages: [
-                { role: 'system', content: 'Ти допомагаєш витягати сутності з тексту.' },
-                { role: 'user', content: nerPrompt }
-            ]
-        }),
-        client.chat.completions.create({
-            model: 'gpt-3.5-turbo',
-            messages: [
-                { role: 'system', content: 'Ти класифікуєш наміри користувача.' },
-                { role: 'user', content: textcatPrompt }
-            ]
-        })
-    ]);
+    const nerContent = 'Ти допомагаєш витягати сутності з тексту.';
+    const nerResponse = await processInputWithGPT(nerContent, nerPrompt);
+
+    const textcatContent = 'Ти класифікуєш наміри користувача.';
+    const textcatResponse = await processInputWithGPT(textcatContent, textcatPrompt);
 
     const nerEntities = JSON.parse(nerResponse.choices[0].message.content.trim());
     const intent = textcatResponse.choices[0].message.content.trim();
@@ -129,7 +174,6 @@ async function giveInformationFromKB(nerEntities, userInput, pv_user_data) {
         instructions: createInstruction(pv_user_data, knowledge),
         input: userInput,
     });
-
     return response.output_text;
 }
 
