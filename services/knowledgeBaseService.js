@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 
 const paths = {
-  "CЕС": 'knowledge_base/ses.json',
+  "СЕС": 'knowledge_base/ses.json',
   "контролер заряду": 'knowledge_base/controllers.json',
   "фотобатарея": 'knowledge_base/batteries.json'
 };
