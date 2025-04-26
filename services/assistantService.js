@@ -18,11 +18,22 @@ const client = new OpenAI({
 function sendFirstMesssage(pv_user_data) {
     const answer = `Привіт. Я є експертною системою для проєктування СЕС. Яка потужність СЕС тобі потрібна?`;
     pv_user_data["intent"] = 'визначити потужність';
+    pv_user_data["cache"] = {
+        history: [
+            {
+                "field": "СЕС",
+                "detail": "потужність"
+            }
+        ],
+        'original_intent': pv_user_data["intent"]
+    }
     return { answer, updated_user_data: pv_user_data };
 }
 
 async function processUserInput(userInput, pv_user_data) {
     console.log("process user input start:", pv_user_data)
+
+    const nerEntities = await extractEntitiesFromText(userInput);
 
     let intent;
 
@@ -32,19 +43,21 @@ async function processUserInput(userInput, pv_user_data) {
     } else {
         // Якщо є інтенція, перевіряємо чи вона не змінилася
         // Визначаємо намір користувача з повідомлення
-        const newIntent = await changeUserIntention(userInput, pv_user_data);
+        const newIntent = (await changeUserIntention(userInput, pv_user_data, nerEntities)).toLowerCase();
 
         if (newIntent !== pv_user_data["intent"]) {
             console.log(`Intent changed from ${pv_user_data["intent"]} to ${newIntent}`);
+
+            pv_user_data["cache"]['temporary_intent'] =  newIntent;
+
             const updatedUserData = { ...pv_user_data, intent: newIntent };
+            
             // Викликаємо рекурсію обробки запиту користувача з оновленим наміром
             return await processUserInput(userInput, updatedUserData);
         }
 
         intent = pv_user_data["intent"];
     }
-
-    const nerEntities = await extractEntitiesFromText(userInput);
 
     let answer, updated_user_data;
 
@@ -54,8 +67,7 @@ async function processUserInput(userInput, pv_user_data) {
             break;
 
         case "інформація":
-            answer = await giveInformationFromKB(nerEntities, userInput, pv_user_data);
-            updated_user_data = pv_user_data;
+            ({ answer, updated_user_data } = await giveInformationFromKB(nerEntities, userInput, pv_user_data));
             break;
 
         case 'привітання':
@@ -101,7 +113,7 @@ async function handlePowerIntent(userInput, pv_user_data) {
 
     } else {
         answer = "third else";
-
+        updated_user_data = pv_user_data;
         console.log("third option: ", answer, updated_user_data)
     }
 
@@ -109,10 +121,32 @@ async function handlePowerIntent(userInput, pv_user_data) {
 }
 
 // function змінює інтенцію
-async function changeUserIntention(text, pv_user_data) {
-    // const currentIntent = pv_user_data["intent"]
-    const newIntent = await extractIntentFromText(text);
-    return newIntent; // !== currentIntent ? newIntent : currentIntent
+async function changeUserIntention(userInput, pv_user_data, nerEntities) {
+    if (isUnknownAnswer(nerEntities)) {
+        // Якщо користувач не знає — залишаємо попередній намір
+        console.log("User answered 'unknown', keeping previous intent:", pv_user_data["intent"]);
+        return pv_user_data["intent"];
+    }
+
+    const newIntent = await extractIntentFromText(userInput);
+    return newIntent;
+}
+
+// Функція для зміни наміру на основі відповіді системи
+async function changeUserIntentFromQuestion(systemOutput, pv_user_data) {
+    const textcatPrompt = buildTextcatPrompt(systemOutput, textcatExamples);
+    const textcatContent = 'Ти аналізуєш текст відповіді експертної системи і класифікуєш можливий намір, що випливає з питання. Поверни тільки назву наміру. Приклад: Можу запитати, яка потужність СЕС вам потрібна? => Можу запитати, яка потужність СЕС вам потрібна? => визначити потужність';
+
+    const possibleNewIntent = await processInputWithGPT(textcatContent, textcatPrompt);
+
+    console.log('[INFO Intent from systemOutput]', possibleNewIntent);
+
+    // Якщо визначився новий намір, оновлюємо pv_user_data
+    if (possibleNewIntent && possibleNewIntent !== pv_user_data.intent) {
+        return { ...pv_user_data, intent: possibleNewIntent };
+    }
+
+    return pv_user_data;
 }
 
 // function керує напрямок розмови далі
@@ -123,6 +157,11 @@ async function createNextQuestion(pv_user_data) {
     const response = await processInputWithGPT(content, JSON.stringify(pv_user_data))
     // console.log(response)
     return response
+}
+
+// function чи відповідь є невизначеністю
+function isUnknownAnswer(nerEntities) {
+    return nerEntities.some(entity => entity.label === 'невідомо');
 }
 
 async function rewritePVUserData(pv_user_data, value, property) {
@@ -145,13 +184,13 @@ function createInstruction(pv_user_data, knowledge) {
     const knowledgeJSON = JSON.stringify(knowledge, null, 2);
 
     const baseInstruction = 'Ти віртуальний асистент для проєктування сонячної електростанції (СЕС). Твоя мета — отримати від користувача наступну інформацію: ' +
-        `вид електростанції, кількість споживання електроенергії, доступна площа для фотопанелей, місце монтажу фотопанелей. Почни з необхідного виду СЕС. Використовуй знання: ${knowledgeJSON}.`;
+        `вид електростанції, кількість споживання електроенергії, доступна площа для фотопанелей, місце монтажу фотопанелей. Почни з необхідної потужності СЕС. Використовуй знання: ${knowledgeJSON}. Під час відповіді не змінюй відомі дані, просто надай їх.`;
 
-    if (pv_user_data?.['messages_count'] === 1) {
+    if (pv_user_data?.['messagesCount'] === 1) {
         return baseInstruction;
     } else {
         const knownData = JSON.stringify(pv_user_data, null, 2);
-        return `${baseInstruction} Використовуй уже відомі дані про користувача та зосередься на зборі відсутньої інформації. Відомі дані:\n${knownData}. Для збору даних задай питання про одне з відсутніх полей.`;
+        return `${baseInstruction} Використовуй уже відомі дані про користувача та зосередься на зборі відсутньої інформації. Відомі дані:\n${knownData}. Для подальшого збору даних обовʼязково задай 1 питання про 1 з відсутніх полей.`;
     }
 }
 
@@ -185,25 +224,51 @@ async function giveInformationFromKB(nerEntities, userInput, pv_user_data) {
         }
     });
 
-    let answer
+    let answer, updated_user_data
 
     if (!field) {
-        answer =  "Не знайдено основне поле для бази знань (наприклад, СЕС)."
-        // throw new Error("Не знайдено основне поле для бази знань (наприклад, СЕС).");
-    } else {
-        const knowledge = getKnowledge(field, detail);
 
-        const response = await client.responses.create({
-            model: 'gpt-3.5-turbo',
-            instructions: createInstruction(pv_user_data, knowledge),
-            input: userInput,
-        });
+        field = getLastField(pv_user_data)
 
-        answer = response.output_text
+        if (!field) {
+            answer = "Не знайдено основне поле для бази знань (наприклад, СЕС)."
+            updated_user_data = pv_user_data
+        } else {
+            const knowledge = getKnowledge(field, detail);
 
+            console.log("!!! knowledge: ", knowledge)
+
+            const response = await client.responses.create({
+                model: 'gpt-3.5-turbo',
+                instructions: createInstruction(pv_user_data, knowledge),
+                input: userInput,
+            });
+
+            answer = response.output_text
+            // TODO: change intent
+            updated_user_data = pv_user_data
+            // updated_user_data = await changeUserIntentFromQuestion(answer, pv_user_data)
+        }
     }
+    return { answer, updated_user_data };
+}
 
-    return answer;
+function getOriginalIntent(pv_user_data) {
+    const original = pv_user_data.cache.find(item => item.type === 'original_intent');
+    return original ? original.value : null;
+}
+
+function removeTemporaryIntent(pv_user_data) {
+    pv_user_data.cache = pv_user_data.cache.filter(item => item.type !== 'temporary_intent');
+}
+
+function getContextFromCache(pv_user_data) {
+    return pv_user_data?.cache?.history?.at(-1) ?? null;
+}
+
+function getLastField(pv_user_data) {
+    const context = getContextFromCache(pv_user_data);
+    return context?.field ?? null;
 }
 
 export const assistant = {
