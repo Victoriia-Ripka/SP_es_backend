@@ -7,7 +7,7 @@ const paths = {
   "фотобатарея": 'knowledge_base/batteries.json'
 };
 
-export function loadKnowledgeBase(field, detail) {
+function loadKnowledgeBase(field, detail = '') {
   const relativePath = paths[field.trim()];
 
   if (!relativePath) {
@@ -17,6 +17,24 @@ export function loadKnowledgeBase(field, detail) {
   const knowledgePath = path.resolve(relativePath);
   const raw = fs.readFileSync(knowledgePath, 'utf-8');
   const detailInfoJSON = JSON.parse(raw)
-  const neededDetailInfo = detailInfoJSON[field.trim()][detail.trim()]
+
+  let neededDetailInfo;
+
+  if (detail) {
+    // Якщо є уточнення — беремо конкретну характеристику
+    neededDetailInfo = detailInfoJSON[field.trim()][detail.trim()]
+  } else {
+    // Якщо немає — беремо загальну інформацію
+    neededDetailInfo = detailInfoJSON[field.trim()]['назва'] + " " + detailInfoJSON[field.trim()]['завдання'];
+  }
+
   return neededDetailInfo;
+}
+
+export function getKnowledge(field, detail = '') {
+  try {
+    return loadKnowledgeBase(field, detail);
+  } catch (err) {
+    throw new Error(`Не вдалося завантажити базу знань для: ${field}`);
+  }
 }

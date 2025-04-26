@@ -4,7 +4,7 @@ import path from 'path';
 import yaml from 'js-yaml';
 import dotenv from "dotenv";
 import { buildNERPrompt, buildTextcatPrompt, processInputWithGPT } from '../helpers/index.js';
-import { loadKnowledgeBase } from './knowledgeBaseService.js';
+import { getKnowledge } from './knowledgeBaseService.js';
 
 dotenv.config();
 
@@ -22,17 +22,29 @@ function sendFirstMesssage(pv_user_data) {
 }
 
 async function processUserInput(userInput, pv_user_data) {
-    // console.log(pv_user_data)
+    console.log("process user input start:", pv_user_data)
 
-    let nerEntities, intent;
+    let intent;
 
     if (pv_user_data["intent"] === '') {
-        ({ nerEntities, intent } = await extractIntentAndEntitiesFromText(userInput));
+        // Якщо немає інтенції, визначаємо її
+        intent = await extractIntentFromText(userInput);
     } else {
+        // Якщо є інтенція, перевіряємо чи вона не змінилася
+        // Визначаємо намір користувача з повідомлення
+        const newIntent = await changeUserIntention(userInput, pv_user_data);
+
+        if (newIntent !== pv_user_data["intent"]) {
+            console.log(`Intent changed from ${pv_user_data["intent"]} to ${newIntent}`);
+            const updatedUserData = { ...pv_user_data, intent: newIntent };
+            // Викликаємо рекурсію обробки запиту користувача з оновленим наміром
+            return await processUserInput(userInput, updatedUserData);
+        }
+
         intent = pv_user_data["intent"];
-        // TOFIX?
-        nerEntities = '';
     }
+
+    const nerEntities = await extractEntitiesFromText(userInput);
 
     let answer, updated_user_data;
 
@@ -58,12 +70,15 @@ async function processUserInput(userInput, pv_user_data) {
 
         // TODO
         default:
+            answer = "Вибач, я тебе не зрозумів.";
+            updated_user_data = pv_user_data;
             break;
     }
 
     return { answer, updated_user_data };
 }
 
+// function handle визначити потужність СЕС
 async function handlePowerIntent(userInput, pv_user_data) {
     const content = 'Якщо повідомлення користувача містить число (цифрами або словами) - поверни true. Інакше поверни false. Поверни тільки "true" або "false".'
     const processedIsANumber = await processInputWithGPT(content, userInput);
@@ -72,13 +87,12 @@ async function handlePowerIntent(userInput, pv_user_data) {
 
     if (processedIsANumber === 'true') {
         let pvPower = verifyNumberOrString(userInput);
-        if(typeof(pvPower) == 'string'){
+        if (typeof (pvPower) == 'string') {
             userInput = verifyNumberOrString(await transformStringToNumber(pvPower));
         }
-        
+
         if (userInput > 0 && userInput < 15) {
-            // TOFIX flexable answer
-            answer = "Який тип СЕС тобі потрібен?";
+            answer = await createNextQuestion(pv_user_data)
             updated_user_data = await rewritePVUserData(pv_user_data, userInput, "power");
         } else {
             answer = "Я можу запропонувати СЕС тільки до 15кВт";
@@ -87,14 +101,29 @@ async function handlePowerIntent(userInput, pv_user_data) {
 
     } else {
         answer = "third else";
-        updated_user_data = pv_user_data;
-        // console.log("third option: ", answer, updated_user_data)
+
+        console.log("third option: ", answer, updated_user_data)
     }
 
     return { answer, updated_user_data };
 }
 
-// TODO: function керує напрямок розмови
+// function змінює інтенцію
+async function changeUserIntention(text, pv_user_data) {
+    // const currentIntent = pv_user_data["intent"]
+    const newIntent = await extractIntentFromText(text);
+    return newIntent; // !== currentIntent ? newIntent : currentIntent
+}
+
+// function керує напрямок розмови далі
+// TOFIX: якщо вже все заповнено?
+// TOFIX: перевизначити intent
+async function createNextQuestion(pv_user_data) {
+    const content = 'Задай 1 питання до користувача щодо СЕС якщо залишилися незаповнені поля на обʼєкті. Задай тільки 1 питання щодо 1 незаповненої властивості.'
+    const response = await processInputWithGPT(content, JSON.stringify(pv_user_data))
+    // console.log(response)
+    return response
+}
 
 async function rewritePVUserData(pv_user_data, value, property) {
     pv_user_data[property] = value;
@@ -107,7 +136,7 @@ function verifyNumberOrString(value) {
 }
 
 async function transformStringToNumber(value) {
-    const content =  'Користувач написав число словами. Твоя задача повернути це число цифрами. Відповідь повинна містити тільки число';
+    const content = 'Користувач написав число словами. Твоя задача повернути це число цифрами. Відповідь повинна містити тільки число';
     const processedUserInputNumber = await processInputWithGPT(content, value);
     return isNaN(processedUserInputNumber) ? value : processedUserInputNumber;
 }
@@ -126,55 +155,55 @@ function createInstruction(pv_user_data, knowledge) {
     }
 }
 
-async function extractIntentAndEntitiesFromText(userInput) {
+async function extractEntitiesFromText(userInput) {
     const nerPrompt = buildNERPrompt(userInput, nerExamples);
-    const textcatPrompt = buildTextcatPrompt(userInput, textcatExamples);
-
     const nerContent = 'Ти допомагаєш витягати сутності з тексту.';
-    const nerResponse = await processInputWithGPT(nerContent, nerPrompt);
-
-    const textcatContent = 'Ти класифікуєш наміри користувача.';
-    const textcatResponse = await processInputWithGPT(textcatContent, textcatPrompt);
-
-    const nerEntities = JSON.parse(nerResponse.choices[0].message.content.trim());
-    const intent = textcatResponse.choices[0].message.content.trim();
+    const nerEntities = JSON.parse(await processInputWithGPT(nerContent, nerPrompt));
 
     console.log('[INFO NER]', nerEntities);
-    console.log('[INFO Intent]', intent);
-
-    return { nerEntities, intent };
+    return nerEntities;
 }
 
-function getKnowledge(field, detail) {
-    try {
-        return loadKnowledgeBase(field, detail);
-    } catch (err) {
-        throw new Error(`Не вдалося завантажити базу знань для: ${field}`);
-    }
+async function extractIntentFromText(userInput) {
+    const textcatPrompt = buildTextcatPrompt(userInput, textcatExamples);
+    const textcatContent = 'Ти класифікуєш наміри користувача.';
+    const intent = await processInputWithGPT(textcatContent, textcatPrompt);
+
+    console.log('[INFO Intent]', intent);
+    return intent;
 }
 
 async function giveInformationFromKB(nerEntities, userInput, pv_user_data) {
-    let field, detail;
+    let field = '';
+    let detail = '';
 
     nerEntities.forEach(entity => {
-        if (entity.label === "CЕС") {
+        if (entity.label === "СЕС") {
             field = entity.label;
         } else if (entity.label === "характеристика") {
             detail = entity.text;
         }
     });
 
-    // console.log("field: ", field, "detail: ", detail)
+    let answer
 
-    const knowledge = getKnowledge(field, detail);
-    // console.log(knowledge)
+    if (!field) {
+        answer =  "Не знайдено основне поле для бази знань (наприклад, СЕС)."
+        // throw new Error("Не знайдено основне поле для бази знань (наприклад, СЕС).");
+    } else {
+        const knowledge = getKnowledge(field, detail);
 
-    const response = await client.responses.create({
-        model: 'gpt-3.5-turbo',
-        instructions: createInstruction(pv_user_data, knowledge),
-        input: userInput,
-    });
-    return response.output_text;
+        const response = await client.responses.create({
+            model: 'gpt-3.5-turbo',
+            instructions: createInstruction(pv_user_data, knowledge),
+            input: userInput,
+        });
+
+        answer = response.output_text
+
+    }
+
+    return answer;
 }
 
 export const assistant = {
