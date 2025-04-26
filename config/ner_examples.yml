@@ -28,6 +28,12 @@
       label: "СЕС"
     - text: "види"
       label: "характеристика"
+- text: "що таке потужність СЕС?"
+  entities:
+    - text: "СЕС"
+      label: "СЕС"
+    - text: "потужність"
+      label: "характеристика"
 - text: "я нічого не знаю про контролери заряду"
   entities:
     - text: "контролери заряду"
@@ -56,3 +62,27 @@
   entities:
     - text: "7,5"
       label: "число"
+- text: "я не знаю"
+  entities:
+    - text: "я не знаю"
+      label: "невідомо"
+- text: "не знаю"
+  entities:
+    - text: "не знаю"
+      label: "невідомо"
+- text: "важко сказати"
+  entities:
+    - text: "важко сказати"
+      label: "невідомо"
+- text: "не можу сказати"
+  entities:
+    - text: "не можу сказати"
+      label: "невідомо"
+- text: "без поняття"
+  entities:
+    - text: "без поняття"
+      label: "невідомо"
+- text: "не впевнений"
+  entities:
+    - text: "не впевнений"
+      label: "невідомо"
