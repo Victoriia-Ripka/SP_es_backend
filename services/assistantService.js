@@ -12,6 +12,7 @@ import {
 } from '../helpers/index.js';
 import { getKnowledge } from './knowledgeBaseService.js';
 
+
 function sendFirstMesssage(pv_user_data) {
     const answer = `Привіт. Я є експертною системою для проєктування СЕС. Яка потужність СЕС тобі потрібна?`;
     pv_user_data["intent"] = 'визначити потужність';
@@ -31,30 +32,7 @@ async function processUserInput(userInput, pv_user_data) {
     console.log("process user input start:", pv_user_data)
 
     const nerEntities = await extractEntitiesFromText(userInput);
-
-    let intent;
-
-    if (pv_user_data["intent"] === '') {
-        // Якщо немає інтенції, визначаємо її
-        intent = await extractIntentFromText(userInput);
-    } else {
-        // Якщо є інтенція, перевіряємо чи вона не змінилася
-        // Визначаємо намір користувача з повідомлення
-        const newIntent = (await changeUserIntention(userInput, pv_user_data, nerEntities)).toLowerCase();
-
-        if (newIntent !== pv_user_data["intent"]) {
-            console.log(`Intent changed from ${pv_user_data["intent"]} to ${newIntent}`);
-
-            pv_user_data["cache"]['temporary_intent'] = newIntent;
-
-            const updatedUserData = { ...pv_user_data, intent: newIntent };
-
-            // Викликаємо рекурсію обробки запиту користувача з оновленим наміром
-            return await processUserInput(userInput, updatedUserData);
-        }
-
-        intent = pv_user_data["intent"];
-    }
+    const intent = await determineUserIntent(userInput, pv_user_data, nerEntities);
 
     let answer, updated_user_data;
 
@@ -87,34 +65,29 @@ async function processUserInput(userInput, pv_user_data) {
     return { answer, updated_user_data };
 }
 
-// function handle визначити потужність СЕС
-async function handlePowerIntent(userInput, pv_user_data) {
-    const content = 'Якщо повідомлення користувача містить число (цифрами або словами) - поверни true. Інакше поверни false. Поверни тільки "true" або "false".'
-    const processedIsANumber = await processInputWithGPT(content, userInput);
 
-    let answer, updated_user_data;
-
-    if (processedIsANumber === 'true') {
-        let pvPower = verifyNumberOrString(userInput);
-        if (typeof (pvPower) == 'string') {
-            userInput = verifyNumberOrString(await transformStringToNumber(pvPower));
-        }
-
-        if (userInput > 0 && userInput < 15) {
-            answer = await createNextQuestion(pv_user_data)
-            updated_user_data = await rewritePVUserData(pv_user_data, userInput, "power");
-        } else {
-            answer = "Я можу запропонувати СЕС тільки до 15кВт";
-            updated_user_data = pv_user_data;
-        }
-
+// INTENT SECTION START
+// Function to determine user intent
+async function determineUserIntent(userInput, pv_user_data, nerEntities) {
+    if (pv_user_data["intent"] === '') {
+        // Якщо немає інтенції, визначаємо її
+        return await extractIntentFromText(userInput);
     } else {
-        answer = "third else";
-        updated_user_data = pv_user_data;
-        console.log("third option: ", answer, updated_user_data)
-    }
+        // Якщо є інтенція, перевіряємо чи вона не змінилася
+        const newIntent = (await changeUserIntention(userInput, pv_user_data, nerEntities)).toLowerCase();
 
-    return { answer, updated_user_data };
+        if (newIntent !== pv_user_data["intent"]) {
+            console.log(`Intent changed from ${pv_user_data["intent"]} to ${newIntent}`);
+
+            pv_user_data["cache"]['temporary_intent'] = newIntent;
+            const updatedUserData = { ...pv_user_data, intent: newIntent };
+
+            // Викликаємо рекурсію обробки запиту користувача з оновленим наміром
+            return await processUserInput(userInput, updatedUserData);
+        }
+
+        return pv_user_data["intent"];
+    }
 }
 
 // function змінює інтенцію
@@ -146,6 +119,48 @@ async function changeUserIntentFromQuestion(systemOutput, pv_user_data) {
     return pv_user_data;
 }
 
+function getOriginalIntent(pv_user_data) {
+    const original = pv_user_data.cache.find(item => item.type === 'original_intent');
+    return original ? original.value : null;
+}
+
+function removeTemporaryIntent(pv_user_data) {
+    pv_user_data.cache = pv_user_data.cache.filter(item => item.type !== 'temporary_intent');
+}
+// INTENT SECTION END
+
+
+// SECTION START
+// function handle визначити потужність СЕС
+async function handlePowerIntent(userInput, pv_user_data) {
+    const content = 'Якщо повідомлення користувача містить число (цифрами або словами) - поверни true. Інакше поверни false. Поверни тільки "true" або "false".'
+    const processedIsANumber = await processInputWithGPT(content, userInput);
+
+    let answer, updated_user_data;
+
+    if (processedIsANumber === 'true') {
+        let pvPower = verifyNumberOrString(userInput);
+        if (typeof (pvPower) == 'string') {
+            userInput = verifyNumberOrString(await transformStringToNumber(pvPower));
+        }
+
+        if (userInput > 0 && userInput < 15) {
+            answer = await createNextQuestion(pv_user_data)
+            updated_user_data = await rewritePVUserData(pv_user_data, userInput, "power");
+        } else {
+            answer = "Я можу запропонувати СЕС тільки до 15кВт";
+            updated_user_data = pv_user_data;
+        }
+
+    } else {
+        answer = "third else";
+        updated_user_data = pv_user_data;
+        console.log("third option: ", answer, updated_user_data)
+    }
+
+    return { answer, updated_user_data };
+}
+
 // function керує напрямок розмови далі
 // TOFIX: якщо вже все заповнено?
 // TOFIX: перевизначити intent
@@ -155,6 +170,10 @@ async function createNextQuestion(pv_user_data) {
     // console.log(response)
     return response
 }
+// SECTION END
+
+
+
 
 async function rewritePVUserData(pv_user_data, value, property) {
     pv_user_data[property] = value;
@@ -196,15 +215,6 @@ async function giveInformationFromKB(nerEntities, userInput, pv_user_data) {
         }
     }
     return { answer, updated_user_data };
-}
-
-function getOriginalIntent(pv_user_data) {
-    const original = pv_user_data.cache.find(item => item.type === 'original_intent');
-    return original ? original.value : null;
-}
-
-function removeTemporaryIntent(pv_user_data) {
-    pv_user_data.cache = pv_user_data.cache.filter(item => item.type !== 'temporary_intent');
 }
 
 function getContextFromCache(pv_user_data) {
