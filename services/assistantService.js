@@ -1,19 +1,16 @@
-import OpenAI from 'openai';
-import fs from 'fs';
-import path from 'path';
-import yaml from 'js-yaml';
-import dotenv from "dotenv";
-import { buildNERPrompt, buildTextcatPrompt, processInputWithGPT } from '../helpers/index.js';
+import { textcatExamples } from '../config/config.js'
+import {
+    buildTextcatPrompt, 
+    processInputWithGPT, 
+    getOpenAIResponse, 
+    verifyNumberOrString, 
+    isUnknownAnswer, 
+    createInstruction,
+    transformStringToNumber,
+    extractEntitiesFromText,
+    extractIntentFromText
+} from '../helpers/index.js';
 import { getKnowledge } from './knowledgeBaseService.js';
-
-dotenv.config();
-
-const nerExamples = yaml.load(fs.readFileSync(path.resolve('./config/ner_examples.yml'), 'utf8'));
-const textcatExamples = JSON.parse(fs.readFileSync(path.resolve('./config/textcat_examples.json'), 'utf8'));
-
-const client = new OpenAI({
-    apiKey: process.env['OPENAI_API_KEY'],
-});
 
 function sendFirstMesssage(pv_user_data) {
     const answer = `Привіт. Я є експертною системою для проєктування СЕС. Яка потужність СЕС тобі потрібна?`;
@@ -48,10 +45,10 @@ async function processUserInput(userInput, pv_user_data) {
         if (newIntent !== pv_user_data["intent"]) {
             console.log(`Intent changed from ${pv_user_data["intent"]} to ${newIntent}`);
 
-            pv_user_data["cache"]['temporary_intent'] =  newIntent;
+            pv_user_data["cache"]['temporary_intent'] = newIntent;
 
             const updatedUserData = { ...pv_user_data, intent: newIntent };
-            
+
             // Викликаємо рекурсію обробки запиту користувача з оновленим наміром
             return await processUserInput(userInput, updatedUserData);
         }
@@ -159,57 +156,9 @@ async function createNextQuestion(pv_user_data) {
     return response
 }
 
-// function чи відповідь є невизначеністю
-function isUnknownAnswer(nerEntities) {
-    return nerEntities.some(entity => entity.label === 'невідомо');
-}
-
 async function rewritePVUserData(pv_user_data, value, property) {
     pv_user_data[property] = value;
     return pv_user_data;
-}
-
-function verifyNumberOrString(value) {
-    const num = parseFloat(value);
-    return isNaN(num) ? value : num;
-}
-
-async function transformStringToNumber(value) {
-    const content = 'Користувач написав число словами. Твоя задача повернути це число цифрами. Відповідь повинна містити тільки число';
-    const processedUserInputNumber = await processInputWithGPT(content, value);
-    return isNaN(processedUserInputNumber) ? value : processedUserInputNumber;
-}
-
-function createInstruction(pv_user_data, knowledge) {
-    const knowledgeJSON = JSON.stringify(knowledge, null, 2);
-
-    const baseInstruction = 'Ти віртуальний асистент для проєктування сонячної електростанції (СЕС). Твоя мета — отримати від користувача наступну інформацію: ' +
-        `вид електростанції, кількість споживання електроенергії, доступна площа для фотопанелей, місце монтажу фотопанелей. Почни з необхідної потужності СЕС. Використовуй знання: ${knowledgeJSON}. Під час відповіді не змінюй відомі дані, просто надай їх.`;
-
-    if (pv_user_data?.['messagesCount'] === 1) {
-        return baseInstruction;
-    } else {
-        const knownData = JSON.stringify(pv_user_data, null, 2);
-        return `${baseInstruction} Використовуй уже відомі дані про користувача та зосередься на зборі відсутньої інформації. Відомі дані:\n${knownData}. Для подальшого збору даних обовʼязково задай 1 питання про 1 з відсутніх полей.`;
-    }
-}
-
-async function extractEntitiesFromText(userInput) {
-    const nerPrompt = buildNERPrompt(userInput, nerExamples);
-    const nerContent = 'Ти допомагаєш витягати сутності з тексту.';
-    const nerEntities = JSON.parse(await processInputWithGPT(nerContent, nerPrompt));
-
-    console.log('[INFO NER]', nerEntities);
-    return nerEntities;
-}
-
-async function extractIntentFromText(userInput) {
-    const textcatPrompt = buildTextcatPrompt(userInput, textcatExamples);
-    const textcatContent = 'Ти класифікуєш наміри користувача.';
-    const intent = await processInputWithGPT(textcatContent, textcatPrompt);
-
-    console.log('[INFO Intent]', intent);
-    return intent;
 }
 
 async function giveInformationFromKB(nerEntities, userInput, pv_user_data) {
@@ -238,13 +187,9 @@ async function giveInformationFromKB(nerEntities, userInput, pv_user_data) {
 
             console.log("!!! knowledge: ", knowledge)
 
-            const response = await client.responses.create({
-                model: 'gpt-3.5-turbo',
-                instructions: createInstruction(pv_user_data, knowledge),
-                input: userInput,
-            });
+            const instructions = createInstruction(pv_user_data, knowledge);
+            answer = await getOpenAIResponse(instructions, userInput);
 
-            answer = response.output_text
             // TODO: change intent
             updated_user_data = pv_user_data
             // updated_user_data = await changeUserIntentFromQuestion(answer, pv_user_data)

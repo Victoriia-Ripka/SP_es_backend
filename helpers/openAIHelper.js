@@ -1,10 +1,8 @@
 import OpenAI from 'openai';
-import dotenv from "dotenv";
-
-dotenv.config();
+import { OPENAI_API_KEY } from '../config/config.js';
 
 const client = new OpenAI({
-    apiKey: process.env['OPENAI_API_KEY'],
+    apiKey: OPENAI_API_KEY,
 });
 
 async function processInputWithGPT(instruction, input) {
@@ -19,4 +17,13 @@ async function processInputWithGPT(instruction, input) {
     return response.choices[0].message.content.trim();
 }
 
-export default processInputWithGPT;
+async function getOpenAIResponse(instructions, input) {
+    const response = await client.responses.create({
+        model: 'gpt-3.5-turbo',
+        instructions,
+        input,
+    });
+    return response.output_text;
+};
+
+export {getOpenAIResponse, processInputWithGPT};
