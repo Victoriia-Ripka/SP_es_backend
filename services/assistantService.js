@@ -8,7 +8,8 @@ import {
     createInstruction,
     transformStringToNumber,
     extractEntitiesFromText,
-    extractIntentFromText
+    extractIntentFromText,
+    extractNumber
 } from '../helpers/index.js';
 import { getKnowledge } from './knowledgeBaseService.js';
 
@@ -28,55 +29,63 @@ function sendFirstMesssage(pv_user_data) {
     return { answer, updated_user_data: pv_user_data };
 }
 
+// TODO: обробка чисел
 async function processUserInput(userInput, pv_user_data) {
-    console.log("process user input start:", pv_user_data)
+    console.log("process user input START:", pv_user_data)
 
     const nerEntities = await extractEntitiesFromText(userInput);
-    const {intent, originalIntent} = await determineUserIntent(userInput, pv_user_data, nerEntities);
+    const { intent, originalIntent } = await determineUserIntent(userInput, pv_user_data, nerEntities);
 
     pv_user_data = changeOriginalIntent(pv_user_data, originalIntent)
 
-    let answer, updated_user_data, question;
+    let answer, updated_user_data;
 
     switch (intent) {
         case "визначити потужність":
-            ({ answer, updated_user_data } = await handlePowerIntent(userInput, pv_user_data));
-            updated_user_data = await changeUserIntentFromSystem(answer, updated_user_data)
+            ({ answer, updated_user_data } = await handlePowerIntent(userInput, pv_user_data, nerEntities));
+            break;
+
+        case "визначити площу СЕС":
+            ({ answer, updated_user_data } = await handleAreaIntent(userInput, pv_user_data));
+            break;
+
+        case "визначити тип СЕС":
+            // ({ answer, updated_user_data } = await handleAreaIntent(userInput, pv_user_data));
+            break;
+
+        case "визначити місце СЕС":
+            // ({ answer, updated_user_data } = await handleAreaIntent(userInput, pv_user_data));
             break;
 
         case "інформація":
-            ({ answer, updated_user_data } = await giveInformationFromKB(nerEntities, userInput, pv_user_data));
-            break;
-
-        case 'привітання':
-            question = await createNextQuestion(pv_user_data);
-            answer = "Привіт. " + question;
-            updated_user_data = await changeUserIntentFromSystem(answer, pv_user_data)
-            break;
-
-        case 'прощання':
-            answer = "Бувай";
+            answer = await giveInformationFromKB(nerEntities, userInput, pv_user_data);
             updated_user_data = pv_user_data;
             break;
 
-        // TODO
+        case 'привітання':
+            answer = "Привіт.";
+            updated_user_data = pv_user_data;
+            break;
+
+        // case 'прощання':
+        //     answer = "Бувай";
+        //     updated_user_data = pv_user_data;
+        //     break;
+
         default:
-            question = await createNextQuestion(pv_user_data)
-            answer = "Вибач, я тебе не зрозумів. " + question;
-            updated_user_data = await changeUserIntentFromSystem(answer, pv_user_data)
+            answer = "Вибач, я тебе не зрозумів.";
+            updated_user_data = pv_user_data;
             break;
     }
 
+    const question = await createNextQuestion(pv_user_data);
+    answer = answer + " " + question;
+    updated_user_data = await changeUserIntentFromSystem(answer, pv_user_data);
 
+    console.log("process user input END:", updated_user_data)
 
     return { answer, updated_user_data };
 }
-
-
-// if (pv_user_data["intent"] === '') {
-    //     Якщо немає інтенції, визначаємо її
-    //     return await extractIntentFromText(userInput);
-    // }
 
 
 // INTENT SECTION START
@@ -85,13 +94,13 @@ async function determineUserIntent(userInput, pv_user_data, nerEntities) {
     let intent = pv_user_data["intent"];
     let originalIntent = pv_user_data["intent"];
 
-    const newIntentFromUserInput = (await changeUserIntention(userInput, pv_user_data, nerEntities)).toLowerCase();
-    
+    const newIntentFromUserInput = (await changeUserIntention(userInput, pv_user_data, nerEntities));
+
     if (newIntentFromUserInput !== originalIntent) {
         intent = newIntentFromUserInput;
     }
 
-    return {intent, originalIntent};
+    return { intent, originalIntent };
 }
 
 // function змінює інтенцію
@@ -113,12 +122,14 @@ async function changeUserIntentFromSystem(answer, pv_user_data) {
 
     const possibleNewIntent = await processInputWithGPT(textcatContent, textcatPrompt);
 
-    console.log('[INFO Intent from answer]', possibleNewIntent);
+    // console.log('[INFO Intent from answer]', possibleNewIntent);
 
     // Якщо визначився новий намір, оновлюємо pv_user_data
     if (possibleNewIntent && possibleNewIntent !== pv_user_data["intent"]) {
         return { ...pv_user_data, intent: possibleNewIntent };
     }
+
+    pv_user_data = changeOriginalIntent(pv_user_data, pv_user_data["intent"])
 
     return pv_user_data;
 }
@@ -136,7 +147,7 @@ function changeOriginalIntent(pv_user_data, newOriginalIntent) {
 
 // SECTION START
 // function handle визначити потужність СЕС
-async function handlePowerIntent(userInput, pv_user_data) {
+async function handlePowerIntent(userInput, pv_user_data, nerEntities) {
     const content = 'Якщо повідомлення користувача містить число (цифрами або словами) - поверни true. Інакше поверни false. Поверни тільки "true" або "false".'
     const processedIsANumber = await processInputWithGPT(content, userInput);
 
@@ -149,14 +160,53 @@ async function handlePowerIntent(userInput, pv_user_data) {
         }
 
         if (userInput > 0 && userInput < 15) {
-            answer = await createNextQuestion(pv_user_data)
-            updated_user_data = await rewritePVUserData(pv_user_data, userInput, "power");
+            answer = `Потужність СЕС визначена як ${userInput}.`;
+            // answer = await createNextQuestion(pv_user_data)
+            updated_user_data = await rewritePVUserData(pv_user_data, userInput, "pv_power");
+            updated_user_data = changeOriginalIntent(updated_user_data, "")
         } else {
-            answer = "Я можу запропонувати СЕС тільки до 15кВт";
+            answer = "Я можу запропонувати СЕС тільки до 15кВт.";
             updated_user_data = pv_user_data;
         }
 
     } else {
+        // TODO: додати логіку (так само як у handleAreaIntent)
+        answer = "third else.";
+        updated_user_data = pv_user_data;
+        console.log("third option: ", answer, updated_user_data)
+    }
+
+    return { answer, updated_user_data };
+}
+
+// function handle визначити площу СЕС
+async function handleAreaIntent(userInput, pv_user_data) {
+    console.log("HANDLE AREA")
+    const content = 'Якщо повідомлення користувача містить число (цифрами або словами) - поверни true. Інакше поверни false. Поверни тільки "true" або "false".'
+    const processedIsANumber = await processInputWithGPT(content, userInput);
+
+    console.log(processedIsANumber)
+
+    let answer, updated_user_data;
+
+    if (processedIsANumber === 'true') {
+        let pvSquare = verifyNumberOrString(userInput);
+        if (typeof (pvSquare) == 'string') {
+            userInput = verifyNumberOrString(await transformStringToNumber(pvSquare));
+        }
+
+        if (userInput > 0) {
+            answer = `Площа під монтаж СЕС визначена як ${userInput}.`;
+            // answer = await createNextQuestion(pv_user_data)
+            updated_user_data = await rewritePVUserData(pv_user_data, userInput, "pv_square");
+            updated_user_data = changeOriginalIntent(updated_user_data, "")
+        } else {
+            answer = "Площа повинна бути додатня.";
+            updated_user_data = pv_user_data;
+        }
+
+    } else {
+        // TODO: додати логіку (так само як у handlePowerIntent)
         answer = "third else";
         updated_user_data = pv_user_data;
         console.log("third option: ", answer, updated_user_data)
@@ -167,8 +217,9 @@ async function handlePowerIntent(userInput, pv_user_data) {
 
 // function керує напрямок розмови далі
 // TOFIX: якщо вже все заповнено?
+// TOFIX: спиратися на original_intent
 async function createNextQuestion(pv_user_data) {
-    const content = 'Задай 1 питання до користувача щодо СЕС якщо залишилися незаповнені поля на обʼєкті. Задай тільки 1 питання щодо 1 незаповненої властивості.'
+    const content = 'Задай 1 питання до користувача щодо СЕС якщо залишилися незаповнені поля на обʼєкті. Задай питання до наміру користувача original_intent. Якщо original_intent, тоді задай тільки 1 питання щодо 1 незаповненої властивості. '
     const response = await processInputWithGPT(content, JSON.stringify(pv_user_data))
     return response
 }
@@ -194,29 +245,23 @@ async function giveInformationFromKB(nerEntities, userInput, pv_user_data) {
         }
     });
 
-    let answer, updated_user_data
+    let answer;
 
     if (!field) {
-
-        field = getLastField(pv_user_data)
+        field = getLastField(pv_user_data);
 
         if (!field) {
             answer = "Не знайдено основне поле для бази знань (наприклад, СЕС)."
-            updated_user_data = pv_user_data
-        } else {
-            const knowledge = getKnowledge(field, detail);
-
-            console.log("!!! knowledge: ", knowledge)
-
-            const instructions = createInstruction(pv_user_data, knowledge);
-            answer = await getOpenAIResponse(instructions, userInput);
-
-            // TODO: change intent
-            updated_user_data = pv_user_data
-            // updated_user_data = await changeUserIntentFromQuestion(answer, pv_user_data)
+            return answer;
         }
     }
-    return { answer, updated_user_data };
+
+    const knowledge = getKnowledge(field, detail);
+    console.log("!!! knowledge: ", knowledge);
+    const instructions = createInstruction(pv_user_data, knowledge);
+    answer = await getOpenAIResponse(instructions, userInput);
+
+    return answer;
 }
 
 function getContextFromCache(pv_user_data) {
