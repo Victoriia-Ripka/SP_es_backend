@@ -1,11 +1,21 @@
-import {buildNERPrompt, extractEntitiesFromText} from './nerHelper.js';
-import {buildTextcatPrompt, extractIntentFromText} from './textcatHelper.js';
-import {processInputWithGPT, getOpenAIResponse} from './openAIHelper.js'
+import { buildNERPrompt, extractEntitiesFromText } from './nerHelper.js';
+import { buildTextcatPrompt, extractIntentFromText } from './textcatHelper.js';
+import { processInputWithGPT, getOpenAIResponse } from './openAIHelper.js'
 
 function verifyNumberOrString(value) {
     const num = parseFloat(value);
     return isNaN(num) ? value : num;
 }
+
+function extractNumber(text) {
+    const cleanedText = text.replace(',', '.');
+    const match = cleanedText.match(/[-+]?[0-9]*\.?[0-9]+/);
+    if (match) {
+        return Number(match[0]);
+    }
+    return null;
+}
+
 
 // function чи відповідь є невизначеністю
 function isUnknownAnswer(nerEntities) {
@@ -42,5 +52,6 @@ export {
     createInstruction,
     transformStringToNumber,
     extractEntitiesFromText,
-    extractIntentFromText
+    extractIntentFromText,
+    extractNumber
 };

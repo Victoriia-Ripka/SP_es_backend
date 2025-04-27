@@ -10,3 +10,30 @@ const nerExamples = yaml.load(fs.readFileSync(path.resolve('./config/ner_example
 const textcatExamples = JSON.parse(fs.readFileSync(path.resolve('./config/textcat_examples.json'), 'utf8'));
 
 export { OPENAI_API_KEY, nerExamples, textcatExamples };
+
+
+// textcats:
+  // {
+  //   "text": "Дякую, до побачення!",
+  //   "label": "прощання"
+  // },
+  // {
+  //   "text": "Дякую, до побачення!",
+  //   "label": "прощання"
+  // },
+  // {
+  //   "text": "На все добре",
+  //   "label": "прощання"
+  // },
+  // {
+  //   "text": "Бувай",
+  //   "label": "прощання"
+  // },
+  // {
+  //   "text": "Прощавай.",
+  //   "label": "прощання"
+  // },
+  // {
+  //   "text": "Допобачення!",
+  //   "label": "прощання"
+  // },
