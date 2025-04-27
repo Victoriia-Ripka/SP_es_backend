@@ -22,7 +22,7 @@ function buildNERPrompt(userInput, examples) {
 
 async function extractEntitiesFromText(userInput) {
     const nerPrompt = buildNERPrompt(userInput, nerExamples);
-    const nerContent = 'Ти допомагаєш витягати сутності з тексту.';
+    const nerContent = 'Ти допомагаєш витягати сутності з тексту. Якщо сутностей не виявлено - поверни пустий масив []';
     const nerEntities = JSON.parse(await processInputWithGPT(nerContent, nerPrompt));
 
     console.log('[INFO NER]', nerEntities);
