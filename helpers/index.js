@@ -22,6 +22,12 @@ function isUnknownAnswer(nerEntities) {
     return nerEntities.some(entity => entity.label === 'невідомо');
 }
 
+// function чи відповідь є невизначеністю
+function isNumberAnswer(nerEntities) {
+    return nerEntities.some(entity => entity.label === 'число');
+}
+
+
 function createInstruction(pv_user_data, knowledge) {
     const knowledgeJSON = JSON.stringify(knowledge, null, 2);
 
@@ -53,5 +59,6 @@ export {
     extractEntitiesFromText,
     extractIntentFromText,
     extractIntentFromSystemText,
-    extractNumber
+    extractNumber,
+    isNumberAnswer
 };
