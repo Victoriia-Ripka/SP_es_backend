@@ -35,11 +35,11 @@ async function processUserInput(userInput, pv_user_data) {
 
     pv_user_data["intent"] = intent;
 
-    // let param;
-    // if (intent === "впевненість") {
-    //     // {intent, param} = 
-    //     //  parametr = intent(впевненість), intent = original_intent
-    // }
+    let param;
+    if (intent === "впевненість") {
+        // {intent, param} = 
+        //  parametr = intent(впевненість), intent = original_intent
+    }
 
     let answer, updated_user_data;
 
@@ -91,13 +91,17 @@ async function processUserInput(userInput, pv_user_data) {
 
     let context;
 
-    // UPDATED_USER_DATA
+    // UPDATE USER INTENT AND ORIGINAL INTENT
     if(intent !== originalIntent){
+        // відновлюємо оригінальний намір від системи і задаємо питання про нього
         console.log("відпрацьовує, якщо користувач змінив намір особисто");
         updated_user_data['intent'] = originalIntent;
         context = 'Задай питання щоб визначити значення у намірі користувача, що записаний в intent';
+        const question = await createNextQuestion(updated_user_data, context);
+        answer = answer + " " + question;
+
     } else {
-        
+        // намір не змінювався, тому від питання системи змінюємо намір і оригінальний намір
         const isUserDataChanged = checkIfUserDataChanged(pv_user_data, updated_user_data);
         console.log("відпрацьовує, якщо намір залишився сталим. чи змінилися дані?", isUserDataChanged);
         if(isUserDataChanged){
@@ -107,11 +111,11 @@ async function processUserInput(userInput, pv_user_data) {
         } else {
             context = 'Задай питання щоб визначити значення у намірі користувача, що записаний в intent';
         }
-    }
 
-    const question = await createNextQuestion(updated_user_data, context);
-    answer = answer + " " + question;
-    updated_user_data = await changeUserIntentFromSystem(answer, updated_user_data); 
+        const question = await createNextQuestion(updated_user_data, context);
+        answer = answer + " " + question;
+        updated_user_data = await changeUserIntentFromSystem(answer, updated_user_data); 
+    }
 
     console.log("[INFO] process user input END:", updated_user_data);
 
