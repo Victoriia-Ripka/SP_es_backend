@@ -23,4 +23,12 @@ async function extractIntentFromText(userInput) {
     return intent;
 }
 
-export { buildTextcatPrompt, extractIntentFromText };
+async function extractIntentFromSystemText(userInput) {
+    let context = buildTextcatPrompt(textcatExamplesFile) + 'Ти аналізуєш текст відповіді експертної системи і класифікуєш можливий намір, що випливає з питання. Поверни тільки назву наміру. Приклад: Можу запитати, яка потужність СЕС вам потрібна? => Можу запитати, яка потужність СЕС вам потрібна? => визначити потужність';
+    const intent = await processInputWithGPT(context, userInput);
+
+    console.log('[INFO Intent]', intent);
+    return intent;
+}
+
+export { extractIntentFromSystemText, extractIntentFromText };

@@ -1,6 +1,6 @@
 import { textcatExamples } from '../config/config.js'
 import {
-    buildTextcatPrompt,
+    extractIntentFromSystemText,
     processInputWithGPT,
     getOpenAIResponse,
     verifyNumberOrString,
@@ -53,8 +53,8 @@ async function processUserInput(userInput, pv_user_data) {
             // ({ answer, updated_user_data } = await handleAreaIntent(userInput, pv_user_data));
             break;
 
-        case "визначити місце СЕС":
-            // ({ answer, updated_user_data } = await handleAreaIntent(userInput, pv_user_data));
+        case "визначити місце монтажу":
+            ({ answer, updated_user_data } = await handlePlaceIntent(userInput, pv_user_data, nerEntities));
             break;
 
         case "інформація":
@@ -82,7 +82,7 @@ async function processUserInput(userInput, pv_user_data) {
     answer = answer + " " + question;
     updated_user_data = await changeUserIntentFromSystem(answer, pv_user_data);
 
-    console.log("process user input END:", updated_user_data)
+    console.log("process user input END:", updated_user_data);
 
     return { answer, updated_user_data };
 }
@@ -117,20 +117,14 @@ async function changeUserIntention(userInput, pv_user_data, nerEntities) {
 
 // Функція для зміни наміру на основі відповіді системи
 async function changeUserIntentFromSystem(answer, pv_user_data) {
-    const textcatPrompt = buildTextcatPrompt(answer, textcatExamples);
-    const textcatContent = 'Ти аналізуєш текст відповіді експертної системи і класифікуєш можливий намір, що випливає з питання. Поверни тільки назву наміру. Приклад: Можу запитати, яка потужність СЕС вам потрібна? => Можу запитати, яка потужність СЕС вам потрібна? => визначити потужність';
-
-    const possibleNewIntent = await processInputWithGPT(textcatContent, textcatPrompt);
-
-    // console.log('[INFO Intent from answer]', possibleNewIntent);
+    const possibleNewIntent = await extractIntentFromSystemText(answer);
 
     // Якщо визначився новий намір, оновлюємо pv_user_data
     if (possibleNewIntent && possibleNewIntent !== pv_user_data["intent"]) {
         return { ...pv_user_data, intent: possibleNewIntent };
     }
 
-    pv_user_data = changeOriginalIntent(pv_user_data, pv_user_data["intent"])
-
+    pv_user_data = changeOriginalIntent(pv_user_data, pv_user_data["intent"]);
     return pv_user_data;
 }
 
@@ -145,8 +139,10 @@ function changeOriginalIntent(pv_user_data, newOriginalIntent) {
 // INTENT SECTION END
 
 
-// SECTION START
+// SECTION HANDLE INTENTS START
 // function handle визначити потужність СЕС
+// TODO: кВт і Вт
+// перевірка ОДИНИЦЬ ВИМІРЮВАННЯ кВт
 async function handlePowerIntent(userInput, pv_user_data, nerEntities) {
     const content = 'Якщо повідомлення користувача містить число (цифрами або словами) - поверни true. Інакше поверни false. Поверни тільки "true" або "false".'
     const processedIsANumber = await processInputWithGPT(content, userInput);
@@ -154,15 +150,11 @@ async function handlePowerIntent(userInput, pv_user_data, nerEntities) {
     let answer, updated_user_data;
 
     if (processedIsANumber === 'true') {
-        let pvPower = verifyNumberOrString(userInput);
-        if (typeof (pvPower) == 'string') {
-            userInput = verifyNumberOrString(await transformStringToNumber(pvPower));
-        }
+        const pvPower = extractNumber(userInput);
 
-        if (userInput > 0 && userInput < 15) {
-            answer = `Потужність СЕС визначена як ${userInput}.`;
-            // answer = await createNextQuestion(pv_user_data)
-            updated_user_data = await rewritePVUserData(pv_user_data, userInput, "pv_power");
+        if (pvPower > 0 && pvPower <= 15) {
+            answer = `Потужність СЕС визначена як ${pvPower} кВт.`;
+            updated_user_data = await rewritePVUserData(pv_user_data, pvPower, "pv_power");
             updated_user_data = changeOriginalIntent(updated_user_data, "")
         } else {
             answer = "Я можу запропонувати СЕС тільки до 15кВт.";
@@ -181,24 +173,17 @@ async function handlePowerIntent(userInput, pv_user_data, nerEntities) {
 
 // function handle визначити площу СЕС
 async function handleAreaIntent(userInput, pv_user_data) {
-    console.log("HANDLE AREA")
     const content = 'Якщо повідомлення користувача містить число (цифрами або словами) - поверни true. Інакше поверни false. Поверни тільки "true" або "false".'
     const processedIsANumber = await processInputWithGPT(content, userInput);
-
-    console.log(processedIsANumber)
 
     let answer, updated_user_data;
 
     if (processedIsANumber === 'true') {
-        let pvSquare = verifyNumberOrString(userInput);
-        if (typeof (pvSquare) == 'string') {
-            userInput = verifyNumberOrString(await transformStringToNumber(pvSquare));
-        }
+        const pvArea = extractNumber(userInput);
 
-        if (userInput > 0) {
-            answer = `Площа під монтаж СЕС визначена як ${userInput}.`;
-            // answer = await createNextQuestion(pv_user_data)
-            updated_user_data = await rewritePVUserData(pv_user_data, userInput, "pv_square");
+        if (pvArea > 0) {
+            answer = `Площа під монтаж СЕС визначена як ${pvArea} м кв.`;
+            updated_user_data = await rewritePVUserData(pv_user_data, pvArea, "pv_square");
             updated_user_data = changeOriginalIntent(updated_user_data, "")
         } else {
             answer = "Площа повинна бути додатня.";
@@ -208,6 +193,34 @@ async function handleAreaIntent(userInput, pv_user_data) {
     } else {
         // TODO: додати логіку (так само як у handlePowerIntent)
         answer = "third else";
+        updated_user_data = pv_user_data;
+        console.log("third option: ", answer, updated_user_data)
+    }
+
+    return { answer, updated_user_data };
+}
+
+async function handlePlaceIntent(userInput, pv_user_data, nerEntities) {
+    const place = nerEntities.find(item => item.label === 'місце монтажу');
+
+    console.log("HANDLE PLACE", place);
+
+    let answer, updated_user_data;
+
+    if (place) {
+        const context = 'Опрацюй текст таким чином, щоб повернути тільки "дах" або "земля". Нічого більше не пиши';
+        const processedPlace = await processInputWithGPT(context, place.text);
+
+        console.log("processedPlace after GPT: ", processedPlace);
+
+        answer = `Місце монтажу визначено як ${processedPlace}.`;
+        updated_user_data = await rewritePVUserData(pv_user_data, processedPlace, "pv_instalation_place");
+        updated_user_data = changeOriginalIntent(updated_user_data, "")
+
+
+    } else {
+        // TODO: додати логіку (так само як у handlePowerIntent)
+        answer = "назва більш конкретно місце монтажу";
         updated_user_data = pv_user_data;
         console.log("third option: ", answer, updated_user_data)
     }

@@ -1,5 +1,5 @@
 import { buildNERPrompt, extractEntitiesFromText } from './nerHelper.js';
-import { buildTextcatPrompt, extractIntentFromText } from './textcatHelper.js';
+import { extractIntentFromSystemText, extractIntentFromText } from './textcatHelper.js';
 import { processInputWithGPT, getOpenAIResponse } from './openAIHelper.js'
 
 function verifyNumberOrString(value) {
@@ -44,7 +44,6 @@ async function transformStringToNumber(value) {
 
 export {
     buildNERPrompt,
-    buildTextcatPrompt,
     processInputWithGPT,
     getOpenAIResponse,
     verifyNumberOrString,
@@ -53,5 +52,6 @@ export {
     transformStringToNumber,
     extractEntitiesFromText,
     extractIntentFromText,
+    extractIntentFromSystemText,
     extractNumber
 };
