@@ -20,9 +20,9 @@ function buildNERPrompt(userInput, examples) {
     `;
 };
 
-async function extractEntitiesFromText(userInput) {
-    const nerPrompt = buildNERPrompt(userInput, nerExamples);
-    const nerContent = 'Ти допомагаєш витягати сутності з тексту. Якщо сутностей не виявлено - поверни пустий масив [] і більше нічого.';
+async function extractEntitiesFromText(text) {
+    const nerPrompt = buildNERPrompt(text, nerExamples);
+    const nerContent = 'Ти допомагаєш витягати сутності з тексту. Якщо сутностей не виявлено - поверни пустий масив [] і більше нічого. Намагайся виявити всі можливі сутності згідно до файлу з прикладами';
     const nerEntities = JSON.parse(await processInputWithGPT(nerContent, nerPrompt));
 
     console.log('[INFO NER]', nerEntities);
