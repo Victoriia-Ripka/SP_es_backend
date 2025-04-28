@@ -16,15 +16,34 @@ function extractNumber(text) {
     return null;
 }
 
-
-// function чи відповідь є невизначеністю
+// function чи текст містить невизначеність
 function isUnknownAnswer(nerEntities) {
     return nerEntities.some(entity => entity.label === 'невідомо');
 }
 
-// function чи відповідь є невизначеністю
+// function чи текст містить число
 function isNumberAnswer(nerEntities) {
     return nerEntities.some(entity => entity.label === 'число');
+}
+
+// Функція для перевірки одиниць вимрювання
+function isCorrectMeasureUnits(nerEntities, correctMeasureUnits){
+    if (!Array.isArray(nerEntities) || nerEntities.length === 0) {
+        return false;
+    }
+
+    // Фільтруємо тільки ті сутності, що мають label "одиниця вимірювання"
+    const measureEntities = nerEntities.filter(entity => entity.label === 'одиниця вимірювання');
+
+    // Якщо жодної одиниці вимірювання не знайдено
+    if (measureEntities.length === 0) {
+        return false;
+    }
+
+    // Перевіряємо, чи є хоча б одна правильна одиниця вимірювання
+    return measureEntities.some(entity => 
+        correctMeasureUnits.includes(entity.text.trim().toLowerCase())
+    );
 }
 
 
@@ -60,5 +79,6 @@ export {
     extractIntentFromText,
     extractIntentFromSystemText,
     extractNumber,
-    isNumberAnswer
+    isNumberAnswer,
+    isCorrectMeasureUnits
 };

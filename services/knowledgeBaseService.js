@@ -16,13 +16,13 @@ function loadKnowledgeBase(field, detail = '') {
 
   const knowledgePath = path.resolve(relativePath);
   const raw = fs.readFileSync(knowledgePath, 'utf-8');
-  const detailInfoJSON = JSON.parse(raw)
+  const detailInfoJSON = JSON.parse(raw);
 
   let neededDetailInfo;
 
   if (detail) {
     // Якщо є уточнення — беремо конкретну характеристику
-    neededDetailInfo = detailInfoJSON[field.trim()][detail.trim()]
+    neededDetailInfo = detailInfoJSON[field.trim()][detail.trim()];
   } else {
     // Якщо немає — беремо загальну інформацію
     neededDetailInfo = detailInfoJSON[field.trim()]['назва'] + " " + detailInfoJSON[field.trim()]['завдання'];
@@ -31,10 +31,21 @@ function loadKnowledgeBase(field, detail = '') {
   return neededDetailInfo;
 }
 
-export function getKnowledge(field, detail = '') {
+function getKnowledge(field, detail = '') {
   try {
     return loadKnowledgeBase(field, detail);
   } catch (err) {
     throw new Error(`Не вдалося завантажити базу знань для: ${field}`);
   }
 }
+
+function getContextFromCache(pv_user_data) {
+  return pv_user_data?.cache?.history?.at(-1) ?? null;
+}
+
+function getLastField(pv_user_data) {
+  const context = getContextFromCache(pv_user_data);
+  return context?.field ?? null;
+}
+
+export { getKnowledge, getLastField }
