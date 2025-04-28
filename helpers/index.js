@@ -67,6 +67,19 @@ async function transformStringToNumber(value) {
     return isNaN(processedUserInputNumber) ? value : processedUserInputNumber;
 }
 
+function checkIfUserDataChanged(pv_user_data, updated_user_data) {
+    const fields = [
+        'pv_power',
+        'pv_square',
+        'pv_instalation_place',
+        'is_electric_autonomy_important',
+        'is_possible_electricity_grid_connection',
+        'is_exist_money_limit'
+    ];
+
+    return fields.some(field => pv_user_data[field] !== updated_user_data[field]);
+}
+
 export {
     buildNERPrompt,
     processInputWithGPT,
@@ -80,5 +93,6 @@ export {
     extractIntentFromSystemText,
     extractNumber,
     isNumberAnswer,
-    isCorrectMeasureUnits
+    isCorrectMeasureUnits,
+    checkIfUserDataChanged
 };
