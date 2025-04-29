@@ -26,4 +26,4 @@ async function getOpenAIResponse(instructions, input) {
     return response.output_text;
 };
 
-export {getOpenAIResponse, processInputWithGPT};
+export { getOpenAIResponse, processInputWithGPT };

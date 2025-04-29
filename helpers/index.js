@@ -27,7 +27,7 @@ function isNumberAnswer(nerEntities) {
 }
 
 // Функція для перевірки одиниць вимрювання
-function isCorrectMeasureUnits(nerEntities, correctMeasureUnits){
+function isCorrectMeasureUnits(nerEntities, correctMeasureUnits) {
     if (!Array.isArray(nerEntities) || nerEntities.length === 0) {
         return false;
     }
@@ -41,7 +41,7 @@ function isCorrectMeasureUnits(nerEntities, correctMeasureUnits){
     }
 
     // Перевіряємо, чи є хоча б одна правильна одиниця вимірювання
-    return measureEntities.some(entity => 
+    return measureEntities.some(entity =>
         correctMeasureUnits.includes(entity.text.trim().toLowerCase())
     );
 }

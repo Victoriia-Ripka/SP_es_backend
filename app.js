@@ -10,13 +10,13 @@ const formatsLogger = app.get("env") === "development" ? "dev" : "short";
 const allowedOrigins = ['https://victoriia-ripka.github.io', 'http://localhost:3000'];
 
 const corsOptions = {
-    origin: (origin, callback) => {
-        if (allowedOrigins.includes(origin) || !origin) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
+  origin: (origin, callback) => {
+    if (allowedOrigins.includes(origin) || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
     }
+  }
 };
 
 app.use(cors(corsOptions));

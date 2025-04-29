@@ -21,7 +21,7 @@ function buildNERPrompt(examples) {
 async function extractEntitiesFromText(text) {
     const context = buildNERPrompt(nerExamplesFile);
     const nerEntities = JSON.parse(await processInputWithGPT(context, text));
-    
+
     console.log('[INFO NER]', nerEntities);
     return nerEntities;
 }

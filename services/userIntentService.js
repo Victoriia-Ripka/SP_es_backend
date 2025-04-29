@@ -28,6 +28,7 @@ async function giveNewOrOldIntent(userInput, pv_user_data, nerEntities) {
 }
 
 // Функція для зміни наміру на основі відповіді системи
+// TODO: не змінювати намірів з таблиці!!!!
 async function changeUserIntentFromSystem(answer, pv_user_data) {
     const possibleNewIntent = await extractIntentFromSystemText(answer);
 

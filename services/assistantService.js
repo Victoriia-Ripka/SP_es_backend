@@ -23,6 +23,12 @@ function sendFirstMesssage(pv_user_data) {
         ],
         original_intent: pv_user_data["intent"]
     }
+    // const answer = `Привіт. Я є експертною системою для проєктування СЕС. Чи важлива для тебе фінансова складова проєктування системи?`;
+    // pv_user_data["intent"] = 'визначити фінансові можливості';
+    // pv_user_data["cache"] = {
+    //     history: [ ],
+    //     original_intent: pv_user_data["intent"]
+    // }
     return { answer, updated_user_data: pv_user_data };
 }
 
@@ -33,12 +39,14 @@ async function processUserInput(userInput, pv_user_data) {
     const nerEntities = await extractEntitiesFromText(userInput);
     let { intent, originalIntent } = await determineUserIntent(userInput, pv_user_data, nerEntities);
 
-    pv_user_data["intent"] = intent;
-
     let param;
-    if (intent === "впевненість") {
-        // {intent, param} = 
-        //  parametr = intent(впевненість), intent = original_intent
+    if (intent.includes("впевненість")) {
+        param = intent;
+        pv_user_data["intent"] = originalIntent;
+
+        console.log("якщо є певність то отримуємо or_intent: ", pv_user_data["intent"], originalIntent)
+    }else {
+        pv_user_data["intent"] = intent;
     }
 
     let answer, updated_user_data;
@@ -57,15 +65,27 @@ async function processUserInput(userInput, pv_user_data) {
             break;
 
         case "визначити автономність":
-            ({ answer, updated_user_data } = await handleAutonomyIntent(param, pv_user_data));
+            ({ answer, updated_user_data } = await handleConfidanceIntent(userInput, pv_user_data, param, "autonomy"));
             break;
-
+        
         case "визначити фінансові можливості":
-            // ({ answer, updated_user_data } = await handleAreaIntent(userInput, pv_user_data));
+            ({ answer, updated_user_data } = await handleConfidanceIntent(userInput, pv_user_data, param, "finance"));
             break;
 
         case "визначити можливість підключення на е-мережі":
-            // ({ answer, updated_user_data } = await handleAreaIntent(userInput, pv_user_data));
+            ({ answer, updated_user_data } = await handleConfidanceIntent(userInput, pv_user_data, param, "power grid"));
+            break;
+
+        case "визначити місцевість":
+            // ({ answer, updated_user_data } = await handleAutonomyIntent(param, pv_user_data));
+            break;
+
+        case "визначити нахил":
+            // ({ answer, updated_user_data } = await handleAutonomyIntent(param, pv_user_data));
+            break;
+
+        case "визначити орієнтацію":
+            // ({ answer, updated_user_data } = await handleAutonomyIntent(param, pv_user_data));
             break;
 
         case "інформація":
@@ -92,9 +112,10 @@ async function processUserInput(userInput, pv_user_data) {
     let context;
 
     // UPDATE USER INTENT AND ORIGINAL INTENT
-    if(intent !== originalIntent){
+    if (pv_user_data["intent"] !== originalIntent) {
         // відновлюємо оригінальний намір від системи і задаємо питання про нього
         console.log("відпрацьовує, якщо користувач змінив намір особисто");
+        // console.log(intent, originalIntent)
         updated_user_data['intent'] = originalIntent;
         context = 'Задай питання щоб визначити значення у намірі користувача, що записаний в intent';
         const question = await createNextQuestion(updated_user_data, context);
@@ -103,18 +124,20 @@ async function processUserInput(userInput, pv_user_data) {
     } else {
         // намір не змінювався, тому від питання системи змінюємо намір і оригінальний намір
         const isUserDataChanged = checkIfUserDataChanged(pv_user_data, updated_user_data);
-        console.log("відпрацьовує, якщо намір залишився сталим. чи змінилися дані?", isUserDataChanged);
-        if(isUserDataChanged){
+        // console.log("відпрацьовує, якщо намір залишився сталим. чи змінилися дані?", isUserDataChanged);
+        if (isUserDataChanged) {
             updated_user_data['intent'] = '';
             updated_user_data = changeOriginalIntent(updated_user_data, '');
+
             context = 'Задай 1 питання до користувача щодо 1 параметра СЕС,що залишилися незаповненими в обʼєкті.'
         } else {
+
             context = 'Задай питання щоб визначити значення у намірі користувача, що записаний в intent';
         }
 
         const question = await createNextQuestion(updated_user_data, context);
         answer = answer + " " + question;
-        updated_user_data = await changeUserIntentFromSystem(answer, updated_user_data); 
+        updated_user_data = await changeUserIntentFromSystem(answer, updated_user_data);
     }
 
     console.log("[INFO] process user input END:", updated_user_data);
@@ -141,6 +164,7 @@ async function handlePowerIntent(userInput, pv_user_data, nerEntities) {
             return { answer, updated_user_data: pv_user_data }
         }
 
+        // TODO: вийняти число, що написано словами в pvPower
         const pvPower = extractNumber(userInput);
 
         if (pvPower > 0 && pvPower <= 15) {
@@ -205,7 +229,7 @@ async function handlePlaceIntent(userInput, pv_user_data, nerEntities) {
     let answer, updated_user_data;
 
     if (placeEnt) {
-        const context = 'Опрацюй текст таким чином, щоб повернути тільки "дах" або "земля". Нічого більше не пиши';
+        const context = 'Опрацюй текст таким чином, щоб повернути тільки "дах" або "земля". Біля будинку означає на землі. Нічого більше не пиши.';
         const processedPlace = await processInputWithGPT(context, placeEnt.text);
         answer = `Місце монтажу визначено як ${processedPlace}.`;
         updated_user_data = rewritePVUserData(pv_user_data, processedPlace, "pv_instalation_place");
@@ -219,35 +243,62 @@ async function handlePlaceIntent(userInput, pv_user_data, nerEntities) {
     return { answer, updated_user_data };
 }
 
-async function handleAutonomyIntent(param, pv_user_data) {
-    // const place = nerEntities.find(item => item.label === 'місце монтажу');
+const answerDataSet = {
+    finance: {
+        "pv_data_field": "is_exist_money_limit",
+        "true": "Фінансові можливості вказані як 'обмежені'.",
+        "false": "Фінансові можливості вказані як 'необмежені'.",
+        "neutral": "Чи у вас є обмежені фінансові можливості? "
+    },
+    "power grid": {
+        "pv_data_field": "is_possible_electricity_grid_connection",
+        "true": "Можливість підключення до е-мережі вказана як 'можлива'.",
+        "false": "Можливість підключення до е-мережі вказана як 'неможлива'.",
+        "neutral": "Чи є у Вас можливість підключення до електромережі? "
+    },
+    autonomy: {
+        "pv_data_field": "is_electric_autonomy_important",
+        "true": "Авномомність енергетичної системи вказана як 'важлива'.",
+        "false": "Авномомність енергетичної системи вказана як 'неважлива'.",
+        "neutral": "Чи вам важливо мати автономну електричну систему? "
+    }
+}
 
-    // let answer, updated_user_data;
+// TODO: connect to KB (field: PV, aspect: finance)
+// TOFIX: prompt to GPT
+async function handleConfidanceIntent(userInput, pv_user_data, param, field ) {
+    let answer, updated_user_data;
 
-    // if (place) {
+    if(!param){
+        const context = "Опрацюй текст тачим чином, щоб повернути 'позитивна впевненість', 'негативна впевненість' або 'нейтральна впевненість'. Поверни тільки рядок з двох слів."
+        param = await processInputWithGPT(context, userInput);
+        console.log("param from GPT: ", param);
+    }
+    
+    if(param === 'позитивна впевненість'){
+        answer = answerDataSet[field]["true"];
+        updated_user_data = rewritePVUserData(pv_user_data, true, answerDataSet[field]["pv_data_field"]);
+    } else if(param === 'негативна впевненість'){
+        answer = answerDataSet[field]["false"];
+        updated_user_data = rewritePVUserData(pv_user_data, false, answerDataSet[field]["pv_data_field"]);
+    } else if(param === 'нейтральна впевненість'){
+        // TODO: connect to KB (field: PV, aspect: finance)
+        answer = answerDataSet[field]["neutral"];
+        updated_user_data = {...pv_user_data};
+    }
 
-
-    //     answer = `Місце монтажу визначено як ${processedPlace}.`;
-    //     updated_user_data = rewritePVUserData(pv_user_data, processedPlace, "pv_instalation_place");
-    //     updated_user_data["intent"] = '';
-    //     updated_user_data = changeOriginalIntent(updated_user_data, "");
-
-
-    // } else {
-    //     // TODO: додати логіку (так само як у handlePowerIntent)
-    //     answer = "назва більш конкретно місце монтажу";
-    //     updated_user_data = { ...pv_user_data };
-    //     console.log("third option: ", answer, updated_user_data)
-    // }
-    const answer = ''
-    const updated_user_data = ''
-
-    return { answer, updated_user_data };
+    return {answer, updated_user_data}
 }
 
 // function керує напрямок розмови далі
+// TODO: задавати кращі питання для визначення параметрів
 // TOFIX: якщо вже все заповнено?
-// TOFIX: спиратися на original_intent 
+//     pv_power: 0,
+//     pv_square: 0,
+//     pv_instalation_place: "",
+//     is_electric_autonomy_important: "",
+//     is_possible_electricity_grid_connection: "",
+//     is_exist_money_limit: "",
 async function createNextQuestion(pv_user_data, context) {
     const response = await processInputWithGPT(context, JSON.stringify(pv_user_data))
     return response
