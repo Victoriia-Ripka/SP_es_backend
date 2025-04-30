@@ -24,7 +24,7 @@ app.use(logger(formatsLogger));
 app.use(express.json());
 app.use(express.static("public"));
 
-app.use("/assistant", assistantRoute);
+app.use("/expert-system", assistantRoute);
 
 app.use((_, res, __) => {
   res.status(404).json({
