@@ -2,41 +2,41 @@
     {
         "condition": "is_possible_electricity_grid_connection = TRUE AND is_electric_autonomy_important = TRUE AND is_exist_money_limit = TRUE",
         "factName": "pv_type",
-        "factValue": "on-grid або hybrid"
+        "factValue": ["on-grid", "hybrid"]
     },
     {
         "condition": "is_possible_electricity_grid_connection = TRUE AND is_electric_autonomy_important = TRUE AND is_exist_money_limit = FALSE",
         "factName": "pv_type",
-        "factValue": "hybrid"
+        "factValue": ["hybrid"]
     },
     {
         "condition": "is_possible_electricity_grid_connection = TRUE AND is_electric_autonomy_important = FALSE AND is_exist_money_limit = TRUE",
         "factName": "pv_type",
-        "factValue": "on-grid"
+        "factValue": ["on-grid"]
     },
     {
         "condition": "is_possible_electricity_grid_connection = FALSE AND is_electric_autonomy_important = TRUE AND is_exist_money_limit = TRUE",
         "factName": "pv_type",
-        "factValue": "off-grid"
+        "factValue": ["off-grid"]
     },
     {
         "condition": "is_possible_electricity_grid_connection = TRUE AND is_electric_autonomy_important = FALSE AND is_exist_money_limit = FALSE",
         "factName": "pv_type",
-        "factValue": "on-grid"
+        "factValue": ["on-grid"]
     },
     {
         "condition": "is_possible_electricity_grid_connection = FALSE AND is_electric_autonomy_important = TRUE AND is_exist_money_limit = FALSE",
         "factName": "pv_type",
-        "factValue": "off-grid"
+        "factValue": ["off-grid"]
     },
     {
         "condition": "is_possible_electricity_grid_connection = FALSE AND is_electric_autonomy_important = FALSE AND is_exist_money_limit = TRUE",
         "factName": "pv_type",
-        "factValue": "off-grid"
+        "factValue": ["off-grid"]
     },
     {
         "condition": "is_possible_electricity_grid_connection = FALSE AND is_electric_autonomy_important = FALSE AND is_exist_money_limit = FALSE",
         "factName": "pv_type",
-        "factValue": "off-grid"
+        "factValue": ["off-grid"]
     }
 ]
