@@ -2,7 +2,7 @@
     {
         "condition": "is_possible_electricity_grid_connection = TRUE AND is_electric_autonomy_important = TRUE AND is_exist_money_limit = TRUE",
         "factName": "pv_type",
-        "factValue": "on-grid or hybrid"
+        "factValue": "on-grid або hybrid"
     },
     {
         "condition": "is_possible_electricity_grid_connection = TRUE AND is_electric_autonomy_important = TRUE AND is_exist_money_limit = FALSE",

@@ -12,6 +12,7 @@ const started_pv_user_data = {
         roof_tilt: 0,
         roof_orientation: 0,
         pv_type: '',
+        pv_location: ''
     },
     data_determining_pv_type: {
         is_electric_autonomy_important: false,
