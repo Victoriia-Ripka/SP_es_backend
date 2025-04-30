@@ -48,4 +48,4 @@ function getLastField(pv_user_data) {
   return context?.field ?? null;
 }
 
-export { getKnowledge, getLastField }
+export const KBService = { getKnowledge, getLastField }

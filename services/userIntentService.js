@@ -1,6 +1,5 @@
-import { isUnknownAnswer, isNumberAnswer } from '../helpers/index.js';
+import { Helpers  } from '../helpers/index.js';
 import { extractIntentFromText, extractIntentFromSystemText } from '../helpers/textcatHelper.js';
-
 
 // Function to determine user intent, original intent
 async function determineUserIntent(userInput, pv_user_data, nerEntities) {
@@ -18,7 +17,7 @@ async function determineUserIntent(userInput, pv_user_data, nerEntities) {
 
 // function змінює інтенцію, але якщо відповідь "невизначена", то залишає попередню
 async function giveNewOrOldIntent(userInput, pv_user_data, nerEntities) {
-    if (isUnknownAnswer(nerEntities) || isNumberAnswer(nerEntities)) {
+    if (Helpers.isUnknownAnswer(nerEntities) || Helpers.isNumberAnswer(nerEntities)) {
         // Якщо користувач не знає або відповів числом — залишаємо попередній намір
         return pv_user_data["intent"];
     }
@@ -69,7 +68,7 @@ function a() {
 
 }
 
-export {
+export const UserIntentService = {
     determineUserIntent,
     changeUserIntentFromSystem,
     changeOriginalIntent

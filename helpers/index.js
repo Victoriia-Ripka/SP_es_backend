@@ -80,7 +80,7 @@ function checkIfUserDataChanged(pv_user_data, updated_user_data) {
     return fields.some(field => pv_user_data[field] !== updated_user_data[field]);
 }
 
-export {
+export const Helpers = {
     buildNERPrompt,
     processInputWithGPT,
     getOpenAIResponse,
