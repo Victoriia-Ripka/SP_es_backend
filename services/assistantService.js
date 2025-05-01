@@ -40,6 +40,11 @@ function determinationPVtype(electric_autonomy, electricity_grid_connection, mon
     return {type, rule};
 }
 
+function createPVdesign(pvData) {
+
+    return 0;
+}
+
 // TODO: перевизначення наміру після заповнення поля або після відхилення від головного наміру
 async function processUserInput(userInput, pv_user_data) {
     console.log("[INFO] process user input START:", pv_user_data);
@@ -355,9 +360,10 @@ async function giveInformationFromKB(nerEntities, userInput, pv_user_data) {
     return answer;
 }
 
-export {
+export const assistantService = {
     processUserInput,
     sendFirstMesssage,
-    determinationPVtype
+    determinationPVtype,
+    createPVdesign
 };
 
