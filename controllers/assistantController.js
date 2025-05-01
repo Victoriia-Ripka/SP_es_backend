@@ -12,7 +12,7 @@ export function startCommunication(req, res) {
 }
 
 export function setPVtype(req, res) {
-    const { pvData } = req.body;
-    const {type, rule} = determinationPVtype(pvData);
+    const { is_electric_autonomy_important, is_possible_electricity_grid_connection, is_exist_money_limit } = req.body;
+    const {type, rule} = determinationPVtype(is_electric_autonomy_important, is_possible_electricity_grid_connection, is_exist_money_limit);
     res.status(200).json({ type, rule });
 }

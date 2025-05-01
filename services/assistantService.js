@@ -33,8 +33,8 @@ function sendFirstMesssage() {
     return { answer, pv_user_data: started_pv_user_data };
 }
 
-function determinationPVtype(pvData) {
-    const result = StugnaService.determinePVtype(pvData);
+function determinationPVtype(electric_autonomy, electricity_grid_connection, money_limit) {
+    const result = StugnaService.determinePVtype(electric_autonomy, electricity_grid_connection, money_limit);
     const type = result.value;
     const rule = result.history[0];
     return {type, rule};

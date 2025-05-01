@@ -13,19 +13,19 @@ const pvTypeRules = JSON.parse(fs.readFileSync(path.resolve('./knowledge_base/pv
 
 let es = new StugnaES();
 
-function determinePVtype(pvData) {
+function determinePVtype(electric_autonomy, electricity_grid_connection, money_limit ) {
     const facts = [
         {
             name: "is_electric_autonomy_important",
-            value: pvData.is_electric_autonomy_important ? 'TRUE' : 'FALSE'
+            value: electric_autonomy ? 'TRUE' : 'FALSE'
         },
         {
             name: "is_possible_electricity_grid_connection",
-            value: pvData.is_possible_electricity_grid_connection ? 'TRUE' : 'FALSE'
+            value: electricity_grid_connection ? 'TRUE' : 'FALSE'
         },
         {
             name: "is_exist_money_limit",
-            value: pvData.is_exist_money_limit ? 'TRUE' : 'FALSE'
+            value: money_limit ? 'TRUE' : 'FALSE'
         }
     ];
 
