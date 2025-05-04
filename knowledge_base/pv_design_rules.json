@@ -1,0 +1,20 @@
+[
+    {
+        "condition": "pv_instalation_place = 'дах' AND pv_power > 10",
+        "factName": "instalation_place",
+        "factValue": "земля",
+        "description": "СЕС з потужністю більше 10кВт не розташовується на даху"
+    },
+    {
+        "condition": "pv_instalation_place = 'дах' AND pv_power <= 10",
+        "factName": "instalation_place",
+        "factValue": "дах",
+        "description": "СЕС з потужністю менше 10кВт можна розташовувати на даху"
+    },
+    {
+        "condition": "pv_instalation_place = 'земля'",
+        "factName": "instalation_place",
+        "factValue": "земля",
+        "description": "СЕС з будь-якою потужністю можна розташовувати на землі"
+    }
+]

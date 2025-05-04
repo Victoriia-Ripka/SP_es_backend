@@ -13,13 +13,13 @@ export function startCommunication(req, res) {
 
 export function setPVtype(req, res) {
     const { is_electric_autonomy_important, is_possible_electricity_grid_connection, is_exist_money_limit } = req.body;
-    const {type, rule} = assistantService.determinationPVtype(is_electric_autonomy_important, is_possible_electricity_grid_connection, is_exist_money_limit);
+    const { type, rule } = assistantService.determinationPVtype(is_electric_autonomy_important, is_possible_electricity_grid_connection, is_exist_money_limit);
     res.status(200).json({ type, rule });
 }
 
 export function designPV(req, res) {
-    const data = req.body;
-    console.log(data);
-    const result = assistantService.createPVdesign(data);
+    const { pvData } = req.body;
+    console.log(pvData);
+    const result = assistantService.createPVdesign(pvData);
     res.status(200).json('');
 }

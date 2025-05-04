@@ -2,41 +2,41 @@
     {
         "condition": "is_possible_electricity_grid_connection = TRUE AND is_electric_autonomy_important = TRUE AND is_exist_money_limit = TRUE",
         "factName": "pv_type",
-        "factValue": ["on-grid", "hybrid"]
+        "factValue": ["мережева", "гибридна"]
     },
     {
         "condition": "is_possible_electricity_grid_connection = TRUE AND is_electric_autonomy_important = TRUE AND is_exist_money_limit = FALSE",
         "factName": "pv_type",
-        "factValue": ["hybrid"]
+        "factValue": ["гибридна"]
     },
     {
         "condition": "is_possible_electricity_grid_connection = TRUE AND is_electric_autonomy_important = FALSE AND is_exist_money_limit = TRUE",
         "factName": "pv_type",
-        "factValue": ["on-grid"]
+        "factValue": ["мережева"]
     },
     {
         "condition": "is_possible_electricity_grid_connection = FALSE AND is_electric_autonomy_important = TRUE AND is_exist_money_limit = TRUE",
         "factName": "pv_type",
-        "factValue": ["off-grid"]
+        "factValue": ["автономна"]
     },
     {
         "condition": "is_possible_electricity_grid_connection = TRUE AND is_electric_autonomy_important = FALSE AND is_exist_money_limit = FALSE",
         "factName": "pv_type",
-        "factValue": ["on-grid"]
+        "factValue": ["мережева"]
     },
     {
         "condition": "is_possible_electricity_grid_connection = FALSE AND is_electric_autonomy_important = TRUE AND is_exist_money_limit = FALSE",
         "factName": "pv_type",
-        "factValue": ["off-grid"]
+        "factValue": ["автономна"]
     },
     {
         "condition": "is_possible_electricity_grid_connection = FALSE AND is_electric_autonomy_important = FALSE AND is_exist_money_limit = TRUE",
         "factName": "pv_type",
-        "factValue": ["off-grid"]
+        "factValue": ["автономна"]
     },
     {
         "condition": "is_possible_electricity_grid_connection = FALSE AND is_electric_autonomy_important = FALSE AND is_exist_money_limit = FALSE",
         "factName": "pv_type",
-        "factValue": ["off-grid"]
+        "factValue": ["автономна"]
     }
 ]

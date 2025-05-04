@@ -2,6 +2,12 @@ import { Helpers } from '../helpers/index.js';
 import { KBService } from './knowledgeBaseService.js'
 import { UserIntentService } from './userIntentService.js'
 import { StugnaService } from './stugnaService.js';
+import { DBService } from './dataBaseService.js';
+import fs from 'fs';
+import path from 'path';
+
+
+const insolationFile = JSON.parse(fs.readFileSync(path.resolve('./knowledge_base/insolation.json'), 'utf8'));
 
 const started_pv_user_data = {
     intent: "", // актуальний намір користувача
@@ -37,12 +43,60 @@ function determinationPVtype(electric_autonomy, electricity_grid_connection, mon
     const result = StugnaService.determinePVtype(electric_autonomy, electricity_grid_connection, money_limit);
     const type = result.value;
     const rule = result.history[0];
-    return {type, rule};
+    return { type, rule };
 }
 
 function createPVdesign(pvData) {
+    let answerFromES;
 
-    return 0;
+    const {
+        pv_power = '',
+        pv_instalation_place = '',
+        pv_area = '',
+        roof_tilt = '',
+        roof_orientation = '',
+        pv_type = '',
+        pv_location = ''
+    } = pvData || {};
+
+    const { answer, place } = StugnaService.checkPVplace(pv_instalation_place, pv_power);
+
+    const pvPlace = place;
+    answerFromES = answer[0];
+
+
+    console.log(pvPlace, answerFromES);
+
+    const regionInsolationData = insolationFile[pv_location]
+
+    const yearRegionInsolation = regionInsolationData["рік"];
+    const monthRegionInsolationRange = regionInsolationData["по місяцям"];
+
+    const pvTypesData = KBService.getKnowledge("СЕС", "види");
+
+    const pvElements = pvTypesData[pv_type]["елементи системи"];
+    const pvExtraElements = pvTypesData[pv_type]["додаткові елементи системи"]
+
+    // надсилати список необхідних складових до типу СЕС (з БД)
+    const principalElementsData = pvElements.map(el => ({
+        name: el.trim(),
+        data: DBService.findElementByName(el.trim(), '')
+    }));
+
+    console.log(principalElementsData)
+
+
+
+
+    return { answerFromES, pv: { pvPlace, yearRegionInsolation, monthRegionInsolationRange } };
+
+    // генерувати кілька варіантів по фінансам (дешево, середньо, дорого)
+
+    // якщо площі замало для очікуваної потужності - сказати про це і запропонувати максимальний варіант
+
+    // надсилати графік виробленої е-енергії за рік (прогноз), прогноз окупності
+    // оптимальне розташування фотопанелей (орієнтація + кут)
+    // 
 }
 
 // TODO: перевизначення наміру після заповнення поля або після відхилення від головного наміру
