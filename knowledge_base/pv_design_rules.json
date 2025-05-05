@@ -31,5 +31,1027 @@
         "condition": "name = 'АКБ'",
         "factName": "translation_comp_name",
         "factValue": "charges"
+    },
+    
+
+    {   
+        "condition": "place = 'земля' OR roof_orientation < 0 ",
+        "factName": "choosing_optimal_orientation",
+        "factValue": 180,
+        "description": "Фотопанелі СЕС на землі розташовуються на південь",
+        "final": 1
+    },
+    {
+        "condition": "place = 'дах' AND (roof_orientation > 270 OR roof_orientation < 90)",
+        "factName": "choosing_optimal_orientation",
+        "factValue": "FALSE",
+        "description": "Фотопанелі на даху з цією орієнтацією мають мізерну продуктивність. Монтаж СЕС немає сенсу."
+    },
+    {
+        "condition": "place = 'дах' AND roof_orientation <= 270 AND roof_orientation >= 90",
+        "factName": "choosing_optimal_orientation",
+        "factValue": "roof_orientation",
+        "description": "Фотопанелі СЕС на даху з такою орієнтацією дають достатньо хороші результати"
+    },
+   
+    
+    {
+        "condition": "place = 'земля'",
+        "factName": "choosing_optimal_angle",
+        "factValue": 30,
+        "description": "Фотопанелі СЕС на грунті розташовуються під оптимальним кутом для України: 30*"
+
+    },
+    {
+        "condition": "place = 'дах' AND roof_tilt <= 15",
+        "factName": "choosing_optimal_angle",
+        "factValue": 15,
+        "description": "Фотопанелі СЕС на пласкому даху розташовуються під кутом 15* для зменшення опору дії вітру"
+    },
+    {
+        "condition": "place = 'дах' AND roof_tilt > 15 AND roof_tilt < 60",
+        "factName": "choosing_optimal_angle",
+        "factValue": "roof_tilt",
+        "description": "Фотопанелі СЕС на даху з помірним схилом розташовуються під данним кутом"
+    },
+    {
+        "condition": "place = 'дах' AND roof_tilt >= 60",
+        "factName": "choosing_optimal_angle",
+        "factValue": 30,
+        "description": "Фотопанелі СЕС на даху з крутим схилом розташовуються під оптимальним кутом для України: 30* за допомогою додаткових кріплень"
+    },
+
+    {
+        "condition": "angle = 15 AND orientation = 0",
+        "factName": "define_PEC",
+        "factValue": 1.1
+    },
+    {
+        "condition": "angle = 15 AND orientation = 5",
+        "factName": "define_PEC",
+        "factValue": 1.09
+    },
+    {
+        "condition": "angle = 15 AND orientation = 10",
+        "factName": "define_PEC",
+        "factValue": 1.09
+    },
+    {
+        "condition": "angle = 15 AND orientation = 15",
+        "factName": "define_PEC",
+        "factValue": 1.09
+    },
+    {
+        "condition": "angle = 15 AND orientation = 20",
+        "factName": "define_PEC",
+        "factValue": 1.09
+    },
+    {
+        "condition": "angle = 15 AND orientation = 25",
+        "factName": "define_PEC",
+        "factValue": 1.08
+    },
+    {
+        "condition": "angle = 15 AND orientation = 30",
+        "factName": "define_PEC",
+        "factValue": 1.08
+    },
+    {
+        "condition": "angle = 15 AND orientation = 35",
+        "factName": "define_PEC",
+        "factValue": 1.07
+    },
+    {
+        "condition": "angle = 15 AND orientation = 40",
+        "factName": "define_PEC",
+        "factValue": 1.07
+    },
+    {
+        "condition": "angle = 15 AND orientation = 45",
+        "factName": "define_PEC",
+        "factValue": 1.06
+    },
+    {
+        "condition": "angle = 15 AND orientation = 50",
+        "factName": "define_PEC",
+        "factValue": 1.05
+    },
+    {
+        "condition": "angle = 15 AND orientation = 55",
+        "factName": "define_PEC",
+        "factValue": 1.05
+    },
+    {
+        "condition": "angle = 15 AND orientation = 60",
+        "factName": "define_PEC",
+        "factValue": 1.04
+    },
+    {
+        "condition": "angle = 15 AND orientation = 65",
+        "factName": "define_PEC",
+        "factValue": 1.03
+    },
+    {
+        "condition": "angle = 15 AND orientation = 70",
+        "factName": "define_PEC",
+        "factValue": 1.02
+    },
+    {
+        "condition": "angle = 15 AND orientation = 75",
+        "factName": "define_PEC",
+        "factValue": 1.01
+    },
+    {
+        "condition": "angle = 15 AND orientation = 80",
+        "factName": "define_PEC",
+        "factValue": 1
+    },
+    {
+        "condition": "angle = 15 AND orientation = 85",
+        "factName": "define_PEC",
+        "factValue": 0.99
+    },
+    {
+        "condition": "angle = 15 AND orientation = 90",
+        "factName": "define_PEC",
+        "factValue": 0.98
+    },
+
+
+    {
+        "condition": "angle = 20 AND orientation = 0",
+        "factName": "define_PEC",
+        "factValue": 1.11
+    },
+    {
+        "condition": "angle = 20 AND orientation = 5",
+        "factName": "define_PEC",
+        "factValue": 1.11
+    },
+    {
+        "condition": "angle = 20 AND orientation = 10",
+        "factName": "define_PEC",
+        "factValue": 1.11
+    },
+    {
+        "condition": "angle = 20 AND orientation = 15",
+        "factName": "define_PEC",
+        "factValue": 1.11
+    },
+    {
+        "condition": "angle = 20 AND orientation = 20",
+        "factName": "define_PEC",
+        "factValue": 1.1
+    },
+    {
+        "condition": "angle = 20 AND orientation = 25",
+        "factName": "define_PEC",
+        "factValue": 1.1
+    },
+    {
+        "condition": "angle = 20 AND orientation = 30",
+        "factName": "define_PEC",
+        "factValue": 1.09
+    },
+    {
+        "condition": "angle = 20 AND orientation = 35",
+        "factName": "define_PEC",
+        "factValue": 1.09
+    },
+    {
+        "condition": "angle = 20 AND orientation = 40",
+        "factName": "define_PEC",
+        "factValue": 1.08
+    },
+    {
+        "condition": "angle = 20 AND orientation = 45",
+        "factName": "define_PEC",
+        "factValue": 1.07
+    },
+    {
+        "condition": "angle = 20 AND orientation = 50",
+        "factName": "define_PEC",
+        "factValue": 1.06
+    },
+    {
+        "condition": "angle = 20 AND orientation = 55",
+        "factName": "define_PEC",
+        "factValue": 1.05
+    },
+    {
+        "condition": "angle = 20 AND orientation = 60",
+        "factName": "define_PEC",
+        "factValue": 1.04
+    },
+    {
+        "condition": "angle = 20 AND orientation = 65",
+        "factName": "define_PEC",
+        "factValue": 1.03
+    },
+    {
+        "condition": "angle = 20 AND orientation = 70",
+        "factName": "define_PEC",
+        "factValue": 1.02
+    },
+    {
+        "condition": "angle = 20 AND orientation = 75",
+        "factName": "define_PEC",
+        "factValue": 1.01
+    },
+    {
+        "condition": "angle = 20 AND orientation = 80",
+        "factName": "define_PEC",
+        "factValue": 1.00
+    },
+    {
+        "condition": "angle = 20 AND orientation = 85",
+        "factName": "define_PEC",
+        "factValue": 0.98
+    },
+    {
+        "condition": "angle = 20 AND orientation = 90",
+        "factName": "define_PEC",
+        "factValue": 0.97
+    },
+
+
+    {
+        "condition": "angle = 25 AND orientation = 0",
+        "factName": "define_PEC",
+        "factValue": 1.13
+    },
+    {
+        "condition": "angle = 25 AND orientation = 5",
+        "factName": "define_PEC",
+        "factValue": 1.12
+    },
+    {
+        "condition": "angle = 25 AND orientation = 10",
+        "factName": "define_PEC",
+        "factValue": 1.12
+    },
+    {
+        "condition": "angle = 25 AND orientation = 15",
+        "factName": "define_PEC",
+        "factValue": 1.12
+    },
+    {
+        "condition": "angle = 25 AND orientation = 20",
+        "factName": "define_PEC",
+        "factValue": 1.12
+    },
+    {
+        "condition": "angle = 25 AND orientation = 25",
+        "factName": "define_PEC",
+        "factValue": 1.11
+    },
+    {
+        "condition": "angle = 25 AND orientation = 30",
+        "factName": "define_PEC",
+        "factValue": 1.0
+    },
+    {
+        "condition": "angle = 25 AND orientation = 35",
+        "factName": "define_PEC",
+        "factValue": 1.1
+    },
+    {
+        "condition": "angle = 25 AND orientation = 40",
+        "factName": "define_PEC",
+        "factValue": 1.09
+    },
+    {
+        "condition": "angle = 25 AND orientation = 45",
+        "factName": "define_PEC",
+        "factValue": 1.08
+    },
+    {
+        "condition": "angle = 25 AND orientation = 50",
+        "factName": "define_PEC",
+        "factValue": 1.07
+    },
+    {
+        "condition": "angle = 25 AND orientation = 55",
+        "factName": "define_PEC",
+        "factValue": 1.06
+    },
+    {
+        "condition": "angle = 25 AND orientation = 60",
+        "factName": "define_PEC",
+        "factValue": 1.05
+    },
+    {
+        "condition": "angle = 25 AND orientation = 65",
+        "factName": "define_PEC",
+        "factValue": 1.03
+    },
+    {
+        "condition": "angle = 25 AND orientation = 70",
+        "factName": "define_PEC",
+        "factValue": 1.02
+    },
+    {
+        "condition": "angle = 25 AND orientation = 75",
+        "factName": "define_PEC",
+        "factValue": 1.00
+    },
+    {
+        "condition": "angle = 25 AND orientation = 80",
+        "factName": "define_PEC",
+        "factValue": 0.98
+    },
+    {
+        "condition": "angle = 25 AND orientation = 85",
+        "factName": "define_PEC",
+        "factValue": 0.97
+    },
+    {
+        "condition": "angle = 25 AND orientation = 90",
+        "factName": "define_PEC",
+        "factValue": 0.96
+    },
+
+
+    {
+        "condition": "angle = 30 AND orientation = 0",
+        "factName": "define_PEC",
+        "factValue": 1.14
+    },
+    {
+        "condition": "angle = 30 AND orientation = 5",
+        "factName": "define_PEC",
+        "factValue": 1.13
+    },
+    {
+        "condition": "angle = 30 AND orientation = 10",
+        "factName": "define_PEC",
+        "factValue": 1.13
+    },
+    {
+        "condition": "angle = 30 AND orientation = 15",
+        "factName": "define_PEC",
+        "factValue": 1.13
+    },
+    {
+        "condition": "angle = 30 AND orientation = 20",
+        "factName": "define_PEC",
+        "factValue": 1.12
+    },
+    {
+        "condition": "angle = 30 AND orientation = 25",
+        "factName": "define_PEC",
+        "factValue": 1.12
+    },
+    {
+        "condition": "angle = 30 AND orientation = 30",
+        "factName": "define_PEC",
+        "factValue": 1.11
+    },
+    {
+        "condition": "angle = 30 AND orientation = 35",
+        "factName": "define_PEC",
+        "factValue": 1.1
+    },
+    {
+        "condition": "angle = 30 AND orientation = 40",
+        "factName": "define_PEC",
+        "factValue": 1.09
+    },
+    {
+        "condition": "angle = 30 AND orientation = 45",
+        "factName": "define_PEC",
+        "factValue": 1.08
+    },
+    {
+        "condition": "angle = 30 AND orientation = 50",
+        "factName": "define_PEC",
+        "factValue": 1.07
+    },
+    {
+        "condition": "angle = 30 AND orientation = 55",
+        "factName": "define_PEC",
+        "factValue": 1.06
+    },
+    {
+        "condition": "angle = 30 AND orientation = 60",
+        "factName": "define_PEC",
+        "factValue": 1.04
+    },
+    {
+        "condition": "angle = 30 AND orientation = 65",
+        "factName": "define_PEC",
+        "factValue": 1.03
+    },
+    {
+        "condition": "angle = 30 AND orientation = 70",
+        "factName": "define_PEC",
+        "factValue": 1.01
+    },
+    {
+        "condition": "angle = 30 AND orientation = 75",
+        "factName": "define_PEC",
+        "factValue": 1.00
+    },
+    {
+        "condition": "angle = 30 AND orientation = 80",
+        "factName": "define_PEC",
+        "factValue": 0.98
+    },
+    {
+        "condition": "angle = 30 AND orientation = 85",
+        "factName": "define_PEC",
+        "factValue": 0.96
+    },
+    {
+        "condition": "angle = 30 AND orientation = 90",
+        "factName": "define_PEC",
+        "factValue": 0.94
+    },
+
+
+    {
+        "condition": "angle = 35 AND orientation = 0",
+        "factName": "define_PEC",
+        "factValue": 1.15
+    },
+    {
+        "condition": "angle = 35 AND orientation = 5",
+        "factName": "define_PEC",
+        "factValue": 1.14
+    },
+    {
+        "condition": "angle = 35 AND orientation = 10",
+        "factName": "define_PEC",
+        "factValue": 1.13
+    },
+    {
+        "condition": "angle = 35 AND orientation = 15",
+        "factName": "define_PEC",
+        "factValue": 1.13
+    },
+    {
+        "condition": "angle = 35 AND orientation = 20",
+        "factName": "define_PEC",
+        "factValue": 1.12
+    },
+    {
+        "condition": "angle = 35 AND orientation = 25",
+        "factName": "define_PEC",
+        "factValue": 1.12
+    },
+    {
+        "condition": "angle = 35 AND orientation = 30",
+        "factName": "define_PEC",
+        "factValue": 1.11
+    },
+    {
+        "condition": "angle = 35 AND orientation = 35",
+        "factName": "define_PEC",
+        "factValue": 1.1
+    },
+    {
+        "condition": "angle = 35 AND orientation = 40",
+        "factName": "define_PEC",
+        "factValue": 1.09
+    },
+    {
+        "condition": "angle = 35 AND orientation = 45",
+        "factName": "define_PEC",
+        "factValue": 1.08
+    },
+    {
+        "condition": "angle = 35 AND orientation = 50",
+        "factName": "define_PEC",
+        "factValue": 1.07
+    },
+    {
+        "condition": "angle = 35 AND orientation = 55",
+        "factName": "define_PEC",
+        "factValue": 1.05
+    },
+    {
+        "condition": "angle = 35 AND orientation = 60",
+        "factName": "define_PEC",
+        "factValue": 1.04
+    },
+    {
+        "condition": "angle = 35 AND orientation = 65",
+        "factName": "define_PEC",
+        "factValue": 1.02
+    },
+    {
+        "condition": "angle = 35 AND orientation = 70",
+        "factName": "define_PEC",
+        "factValue": 1.00
+    },
+    {
+        "condition": "angle = 35 AND orientation = 75",
+        "factName": "define_PEC",
+        "factValue": 0.99
+    },
+    {
+        "condition": "angle = 35 AND orientation = 80",
+        "factName": "define_PEC",
+        "factValue": 0.97
+    },
+    {
+        "condition": "angle = 35 AND orientation = 85",
+        "factName": "define_PEC",
+        "factValue": 0.95
+    },
+    {
+        "condition": "angle = 35 AND orientation = 90",
+        "factName": "define_PEC",
+        "factValue": 0.93
+    },
+
+
+    {
+        "condition": "angle = 40 AND orientation = 0",
+        "factName": "define_PEC",
+        "factValue": 1.14
+    },
+    {
+        "condition": "angle = 40 AND orientation = 5",
+        "factName": "define_PEC",
+        "factValue": 1.13
+    },
+    {
+        "condition": "angle = 40 AND orientation = 10",
+        "factName": "define_PEC",
+        "factValue": 1.13
+    },
+    {
+        "condition": "angle = 40 AND orientation = 15",
+        "factName": "define_PEC",
+        "factValue": 1.12
+    },
+    {
+        "condition": "angle = 40 AND orientation = 20",
+        "factName": "define_PEC",
+        "factValue": 1.12
+    },
+    {
+        "condition": "angle = 40 AND orientation = 25",
+        "factName": "define_PEC",
+        "factValue": 1.11
+    },
+    {
+        "condition": "angle = 40 AND orientation = 30",
+        "factName": "define_PEC",
+        "factValue": 1.1
+    },
+    {
+        "condition": "angle = 40 AND orientation = 35",
+        "factName": "define_PEC",
+        "factValue": 1.1
+    },
+    {
+        "condition": "angle = 40 AND orientation = 40",
+        "factName": "define_PEC",
+        "factValue": 1.09
+    },
+    {
+        "condition": "angle = 40 AND orientation = 45",
+        "factName": "define_PEC",
+        "factValue": 1.07
+    },
+    {
+        "condition": "angle = 40 AND orientation = 50",
+        "factName": "define_PEC",
+        "factValue": 1.06
+    },
+    {
+        "condition": "angle = 40 AND orientation = 55",
+        "factName": "define_PEC",
+        "factValue": 1.04
+    },
+    {
+        "condition": "angle = 40 AND orientation = 60",
+        "factName": "define_PEC",
+        "factValue": 1.03
+    },
+    {
+        "condition": "angle = 40 AND orientation = 65",
+        "factName": "define_PEC",
+        "factValue": 1.01
+    },
+    {
+        "condition": "angle = 40 AND orientation = 70",
+        "factName": "define_PEC",
+        "factValue": 0.99
+    },
+    {
+        "condition": "angle = 40 AND orientation = 75",
+        "factName": "define_PEC",
+        "factValue": 0.97
+    },
+    {
+        "condition": "angle = 40 AND orientation = 80",
+        "factName": "define_PEC",
+        "factValue": 0.95
+    },
+    {
+        "condition": "angle = 40 AND orientation = 85",
+        "factName": "define_PEC",
+        "factValue": 0.93
+    },
+    {
+        "condition": "angle = 40 AND orientation = 90",
+        "factName": "define_PEC",
+        "factValue": 0.91
+    },
+
+
+    {
+        "condition": "angle = 45 AND orientation = 0",
+        "factName": "define_PEC",
+        "factValue": 1.12
+    },
+    {
+        "condition": "angle = 45 AND orientation = 5",
+        "factName": "define_PEC",
+        "factValue": 1.12
+    },
+    {
+        "condition": "angle = 45 AND orientation = 10",
+        "factName": "define_PEC",
+        "factValue": 1.12
+    },
+    {
+        "condition": "angle = 45 AND orientation = 15",
+        "factName": "define_PEC",
+        "factValue": 1.11
+    },
+    {
+        "condition": "angle = 45 AND orientation = 20",
+        "factName": "define_PEC",
+        "factValue": 1.11
+    },
+    {
+        "condition": "angle = 45 AND orientation = 25",
+        "factName": "define_PEC",
+        "factValue": 1.1
+    },
+    {
+        "condition": "angle = 45 AND orientation = 30",
+        "factName": "define_PEC",
+        "factValue": 1.1
+    },
+    {
+        "condition": "angle = 45 AND orientation = 35",
+        "factName": "define_PEC",
+        "factValue": 1.09
+    },
+    {
+        "condition": "angle = 45 AND orientation = 40",
+        "factName": "define_PEC",
+        "factValue": 1.07
+    },
+    {
+        "condition": "angle = 45 AND orientation = 45",
+        "factName": "define_PEC",
+        "factValue": 1.06
+    },
+    {
+        "condition": "angle = 45 AND orientation = 50",
+        "factName": "define_PEC",
+        "factValue": 1.05
+    },
+    {
+        "condition": "angle = 45 AND orientation = 55",
+        "factName": "define_PEC",
+        "factValue": 1.03
+    },
+    {
+        "condition": "angle = 45 AND orientation = 60",
+        "factName": "define_PEC",
+        "factValue": 1.01
+    },
+    {
+        "condition": "angle = 45 AND orientation = 65",
+        "factName": "define_PEC",
+        "factValue": 1.00
+    },
+    {
+        "condition": "angle = 45 AND orientation = 70",
+        "factName": "define_PEC",
+        "factValue": 0.98
+    },
+    {
+        "condition": "angle = 45 AND orientation = 75",
+        "factName": "define_PEC",
+        "factValue": 0.96
+    },
+    {
+        "condition": "angle = 45 AND orientation = 80",
+        "factName": "define_PEC",
+        "factValue": 0.93
+    },
+    {
+        "condition": "angle = 45 AND orientation = 85",
+        "factName": "define_PEC",
+        "factValue": 0.91
+    },
+    {
+        "condition": "angle = 45 AND orientation = 90",
+        "factName": "define_PEC",
+        "factValue": 0.88
+    },
+
+
+
+    {
+        "condition": "angle = 50 AND orientation = 0",
+        "factName": "define_PEC",
+        "factValue": 1.11
+    },
+    {
+        "condition": "angle = 50 AND orientation = 5",
+        "factName": "define_PEC",
+        "factValue": 1.1
+    },
+    {
+        "condition": "angle = 50 AND orientation = 10",
+        "factName": "define_PEC",
+        "factValue": 1.1
+    },
+    {
+        "condition": "angle = 50 AND orientation = 15",
+        "factName": "define_PEC",
+        "factValue": 1.1
+    },
+    {
+        "condition": "angle = 50 AND orientation = 20",
+        "factName": "define_PEC",
+        "factValue": 1.09
+    },
+    {
+        "condition": "angle = 50 AND orientation = 25",
+        "factName": "define_PEC",
+        "factValue": 1.09
+    },
+    {
+        "condition": "angle = 50 AND orientation = 30",
+        "factName": "define_PEC",
+        "factValue": 1.08
+    },
+    {
+        "condition": "angle = 50 AND orientation = 35",
+        "factName": "define_PEC",
+        "factValue": 1.07
+    },
+    {
+        "condition": "angle = 50 AND orientation = 40",
+        "factName": "define_PEC",
+        "factValue": 1.06
+    },
+    {
+        "condition": "angle = 50 AND orientation = 45",
+        "factName": "define_PEC",
+        "factValue": 1.04
+    },
+    {
+        "condition": "angle = 50 AND orientation = 50",
+        "factName": "define_PEC",
+        "factValue": 1.03
+    },
+    {
+        "condition": "angle = 50 AND orientation = 55",
+        "factName": "define_PEC",
+        "factValue": 1.01
+    },
+    {
+        "condition": "angle = 50 AND orientation = 60",
+        "factName": "define_PEC",
+        "factValue": 1.00
+    },
+    {
+        "condition": "angle = 50 AND orientation = 65",
+        "factName": "define_PEC",
+        "factValue": 0.98
+    },
+    {
+        "condition": "angle = 50 AND orientation = 70",
+        "factName": "define_PEC",
+        "factValue": 0.96
+    },
+    {
+        "condition": "angle = 50 AND orientation = 75",
+        "factName": "define_PEC",
+        "factValue": 0.94
+    },
+    {
+        "condition": "angle = 50 AND orientation = 80",
+        "factName": "define_PEC",
+        "factValue": 0.92
+    },
+    {
+        "condition": "angle = 50 AND orientation = 85",
+        "factName": "define_PEC",
+        "factValue": 0.89
+    },
+    {
+        "condition": "angle = 50 AND orientation = 90",
+        "factName": "define_PEC",
+        "factValue": 0.87
+    },
+
+
+    {
+        "condition": "angle = 55 AND orientation = 0",
+        "factName": "define_PEC",
+        "factValue": 1.08
+    },
+    {
+        "condition": "angle = 55 AND orientation = 5",
+        "factName": "define_PEC",
+        "factValue": 1.08
+    },
+    {
+        "condition": "angle = 55 AND orientation = 10",
+        "factName": "define_PEC",
+        "factValue": 1.08
+    },
+    {
+        "condition": "angle = 55 AND orientation = 15",
+        "factName": "define_PEC",
+        "factValue": 1.08
+    },
+    {
+        "condition": "angle = 55 AND orientation = 20",
+        "factName": "define_PEC",
+        "factValue": 1.07
+    },
+    {
+        "condition": "angle = 55 AND orientation = 25",
+        "factName": "define_PEC",
+        "factValue": 1.07
+    },
+    {
+        "condition": "angle = 55 AND orientation = 30",
+        "factName": "define_PEC",
+        "factValue": 1.06
+    },
+    {
+        "condition": "angle = 55 AND orientation = 35",
+        "factName": "define_PEC",
+        "factValue": 1.05
+    },
+    {
+        "condition": "angle = 55 AND orientation = 40",
+        "factName": "define_PEC",
+        "factValue": 1.04
+    },
+    {
+        "condition": "angle = 55 AND orientation = 45",
+        "factName": "define_PEC",
+        "factValue": 1.02
+    },
+    {
+        "condition": "angle = 55 AND orientation = 50",
+        "factName": "define_PEC",
+        "factValue": 1.01
+    },
+    {
+        "condition": "angle = 55 AND orientation = 55",
+        "factName": "define_PEC",
+        "factValue": 0.99
+    },
+    {
+        "condition": "angle = 55 AND orientation = 60",
+        "factName": "define_PEC",
+        "factValue": 0.97
+    },
+    {
+        "condition": "angle = 55 AND orientation = 65",
+        "factName": "define_PEC",
+        "factValue": 0.96
+    },
+    {
+        "condition": "angle = 55 AND orientation = 70",
+        "factName": "define_PEC",
+        "factValue": 0.94
+    },
+    {
+        "condition": "angle = 55 AND orientation = 75",
+        "factName": "define_PEC",
+        "factValue": 0.92
+    },
+    {
+        "condition": "angle = 55 AND orientation = 80",
+        "factName": "define_PEC",
+        "factValue": 0.89
+    },
+    {
+        "condition": "angle = 55 AND orientation = 85",
+        "factName": "define_PEC",
+        "factValue": 0.87
+    },
+    {
+        "condition": "angle = 55 AND orientation = 90",
+        "factName": "define_PEC",
+        "factValue": 0.85
+    },
+
+
+    {
+        "condition": "angle = 60 AND orientation = 0",
+        "factName": "define_PEC",
+        "factValue": 1.06
+    },
+    {
+        "condition": "angle = 60 AND orientation = 5",
+        "factName": "define_PEC",
+        "factValue": 1.06
+    },
+    {
+        "condition": "angle = 60 AND orientation = 10",
+        "factName": "define_PEC",
+        "factValue": 1.05
+    },
+    {
+        "condition": "angle = 60 AND orientation = 15",
+        "factName": "define_PEC",
+        "factValue": 1.05
+    },
+    {
+        "condition": "angle = 60 AND orientation = 20",
+        "factName": "define_PEC",
+        "factValue": 1.05
+    },
+    {
+        "condition": "angle = 60 AND orientation = 25",
+        "factName": "define_PEC",
+        "factValue": 1.04
+    },
+    {
+        "condition": "angle = 60 AND orientation = 30",
+        "factName": "define_PEC",
+        "factValue": 1.03
+    },
+    {
+        "condition": "angle = 60 AND orientation = 35",
+        "factName": "define_PEC",
+        "factValue": 1.02
+    },
+    {
+        "condition": "angle = 60 AND orientation = 40",
+        "factName": "define_PEC",
+        "factValue": 1.01
+    },
+    {
+        "condition": "angle = 60 AND orientation = 45",
+        "factName": "define_PEC",
+        "factValue": 1.00
+    },
+    {
+        "condition": "angle = 60 AND orientation = 50",
+        "factName": "define_PEC",
+        "factValue": 0.98
+    },
+    {
+        "condition": "angle = 60 AND orientation = 55",
+        "factName": "define_PEC",
+        "factValue": 1.00
+    },
+    {
+        "condition": "angle = 60 AND orientation = 60",
+        "factName": "define_PEC",
+        "factValue": 0.95
+    },
+    {
+        "condition": "angle = 60 AND orientation = 65",
+        "factName": "define_PEC",
+        "factValue": 0.93
+    },
+    {
+        "condition": "angle = 60 AND orientation = 70",
+        "factName": "define_PEC",
+        "factValue": 0.91
+    },
+    {
+        "condition": "angle = 60 AND orientation = 75",
+        "factName": "define_PEC",
+        "factValue": 0.89
+    },
+    {
+        "condition": "angle = 60 AND orientation = 80",
+        "factName": "define_PEC",
+        "factValue": 0.87
+    },
+    {
+        "condition": "angle = 60 AND orientation = 85",
+        "factName": "define_PEC",
+        "factValue": 0.85
+    },
+    {
+        "condition": "angle = 60 AND orientation = 90",
+        "factName": "define_PEC",
+        "factValue": 0.82
     }
+    
+
+
+
 ]
