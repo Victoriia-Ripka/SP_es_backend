@@ -46,57 +46,60 @@ function determinationPVtype(electric_autonomy, electricity_grid_connection, mon
     return { type, rule };
 }
 
-function createPVdesign(pvData) {
+async function createPVdesign(pvData) {
     let answerFromES;
 
     const {
         pv_power = '',
         pv_instalation_place = '',
-        pv_area = '',
+        pv_area = {
+            width: 0,
+            height: 0
+        },
         roof_tilt = '',
         roof_orientation = '',
         pv_type = '',
         pv_location = ''
     } = pvData || {};
 
-    const { answer, place } = StugnaService.checkPVplace(pv_instalation_place, pv_power);
+    // 1.1
+    const pvTypesData = KBService.getKnowledge("СЕС", "види");
+    const pvElements = pvTypesData[pv_type]["елементи системи"];
+    const pvExtraElements = pvTypesData[pv_type]["додаткові елементи системи"];
 
-    const pvPlace = place;
-    answerFromES = answer[0];
-
-
-    console.log(pvPlace, answerFromES);
-
-    const regionInsolationData = insolationFile[pv_location]
-
+    // 1.2
+    const regionInsolationData = insolationFile[pv_location];
     const yearRegionInsolation = regionInsolationData["рік"];
     const monthRegionInsolationRange = regionInsolationData["по місяцям"];
 
-    const pvTypesData = KBService.getKnowledge("СЕС", "види");
-
-    const pvElements = pvTypesData[pv_type]["елементи системи"];
-    const pvExtraElements = pvTypesData[pv_type]["додаткові елементи системи"]
-
+    // 1.3
     // надсилати список необхідних складових до типу СЕС (з БД)
-    const principalElementsData = pvElements.map(el => ({
-        name: el.trim(),
-        data: DBService.findElementByName(el.trim(), '')
-    }));
+    const principalElementsData = await Promise.all(
+        pvElements.map(async el => ({
+            name: el.trim(),
+            data: await DBService.findElementByName(el.trim())
+        }))
+    );
+    console.log(principalElementsData);
 
-    console.log(principalElementsData)
+    // 2.1
+    const { answer, place } = StugnaService.checkPVplace(pv_instalation_place, pv_power);
+    const pvPlace = place;
+    answerFromES = answer[0];
+    console.log(pvPlace, answerFromES);
+
+    // 2.2
+    // оптимальне розташування фотопанелей (орієнтація + кут)
 
 
 
 
-    return { answerFromES, pv: { pvPlace, yearRegionInsolation, monthRegionInsolationRange } };
+    return { answerFromES, pv: { pvPlace, yearRegionInsolation, monthRegionInsolationRange }, principalElementsData };
 
     // генерувати кілька варіантів по фінансам (дешево, середньо, дорого)
-
     // якщо площі замало для очікуваної потужності - сказати про це і запропонувати максимальний варіант
-
     // надсилати графік виробленої е-енергії за рік (прогноз), прогноз окупності
     // оптимальне розташування фотопанелей (орієнтація + кут)
-    // 
 }
 
 // TODO: перевизначення наміру після заповнення поля або після відхилення від головного наміру

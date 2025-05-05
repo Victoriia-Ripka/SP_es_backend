@@ -16,5 +16,20 @@
         "factName": "instalation_place",
         "factValue": "земля",
         "description": "СЕС з будь-якою потужністю можна розташовувати на землі"
+    },
+    {
+        "condition": "name = 'фотопанелі'",
+        "factName": "translation_comp_name",
+        "factValue": "panels"
+    },
+    {
+        "condition": "name = 'інвертор'",
+        "factName": "translation_comp_name",
+        "factValue": "inverters"
+    },
+    {
+        "condition": "name = 'АКБ'",
+        "factName": "translation_comp_name",
+        "factValue": "charges"
     }
 ]

@@ -58,7 +58,15 @@ function checkPVplace(pv_instalation_place, pv_power) {
     return { answer, place };
 }
 
+function applyPVDesignRuleToFacts(ruleName, facts) {
+    es.rulesImport(pvDesignRules);
+    es.factsImport(facts);
+    const { value } = es.factGet(`${ruleName}`);
+    return value;
+}
+
 export const StugnaService = {
     determinePVtype,
-    checkPVplace
+    checkPVplace,
+    applyPVDesignRuleToFacts
 }
