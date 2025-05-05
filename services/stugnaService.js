@@ -6,7 +6,7 @@ const pvTypeRules = JSON.parse(fs.readFileSync(path.resolve('./knowledge_base/pv
 const pvDesignRules = JSON.parse(fs.readFileSync(path.resolve('./knowledge_base/pv_design_rules.json'), 'utf8'));
 
 let options = {
-    toSaveEvents: false,
+    toSaveEvents: true,
     toExplainMore: true
 };
 
@@ -51,7 +51,29 @@ function applyPVDesignRuleToFacts(ruleName, facts) {
     return { value, history };
 }
 
+function buildFacts(factsObject) {
+    return Object.entries(factsObject).map(([name, value]) => ({ name, value }));
+}
+
+function resolveValue(result, fallbackKey, fallbackValue) {
+    return result.value === fallbackKey ? fallbackValue : result.value;
+}
+
+function logResult(label, value) {
+    console.log(`${label}: `, value);
+}
+
+function applyRule(ruleName, facts, fallbackKey, fallbackValue) {
+    const result = StugnaService.applyPVDesignRuleToFacts(ruleName, facts);
+    const resolvedValue = resolveValue(result, fallbackKey, fallbackValue);
+    logResult("[INFO Stugna service] ", ruleName, resolvedValue);
+    return { value: resolvedValue, history: result.history };
+}
+
+
 export const StugnaService = {
     determinePVtype,
-    applyPVDesignRuleToFacts
+    applyPVDesignRuleToFacts,
+    buildFacts,
+    applyRule
 }

@@ -46,17 +46,18 @@ function determinationPVtype(electric_autonomy, electricity_grid_connection, mon
     return { type, rule };
 }
 
+// TOFIX: why answers added to each others
 async function createPVdesign(pvData) {
-    let answerFromES;
+    let answerFromES = [];
 
     const {
         pv_power = '',
         pv_instalation_place = '',
-        pv_area = {
-            width: 0,
-            height: 0,
-            area: 0
-        },
+        pv_area: {
+            width = 0,
+            height = 0,
+            area = 0
+        } = {},
         roof_tilt = '',
         roof_orientation = '',
         pv_type = '',
@@ -73,97 +74,57 @@ async function createPVdesign(pvData) {
     const yearRegionInsolation = regionInsolationData["рік"];
     const monthRegionInsolationRange = regionInsolationData["по місяцям"];
 
-    // 2.1
-    const placeFacts = [
-        {
-            name: "pv_instalation_place",
-            value: pv_instalation_place
-        },
-        {
-            name: "pv_power",
-            value: pv_power
-        }
-    ]
-    const { history: answerInstalationPlace, value: pvPlace } = StugnaService.applyPVDesignRuleToFacts("instalation_place", placeFacts);
-    answerFromES = answerInstalationPlace;
+    // 2.1 check optimal PV instalation place
+    const placeFacts = StugnaService.buildFacts({ pv_instalation_place, pv_power });
+    const { value: optimalPVPlace, history: installationPlaceHistory } = StugnaService.applyRule("instalation_place", placeFacts);
+    answerFromES.push(installationPlaceHistory);
+    console.log("optimalPVPlace: ", optimalPVPlace)
 
-    console.log("better instalation place: ", pvPlace)
-
-    // 2.2
-    // оптимальне розташування фотопанелей (орієнтація + кут)
-    const orientationFacts = [
-        {
-            name: "place",
-            value: pv_instalation_place
-        },
-        {
-            name: "roof_orientation",
-            value: roof_orientation
-        }
-    ]
-    let { history: optimalPVOrientationAnswer, value: optimalPVOrientation } = StugnaService.applyPVDesignRuleToFacts("choosing_optimal_orientation", orientationFacts)
-
-    if (optimalPVOrientation == 'FALSE') {
-        return { answer: history }
-    } else if (optimalPVOrientation == 'roof_orientation') {
-        optimalPVOrientation = roof_orientation;
+    if (optimalPVPlace === 'земля' && pv_instalation_place === 'дах') {
+        const errorAnswer = [installationPlaceHistory, 'Вкажіть довжину і ширину ділянки під фотопанелі на землі.']
+        return {answer: errorAnswer }
     }
 
+    // 2.2.1
+    // Optimal orientation
+    const orientationFacts = StugnaService.buildFacts({ place: pv_instalation_place, roof_orientation });
+    const { value: optimalPVOrientation, history: orientationHistory } = StugnaService.applyRule("choosing_optimal_orientation", orientationFacts, "roof_orientation", roof_orientation);
+
+    if (!optimalPVOrientation) {
+        return { answer: orientationHistory[0] };
+    }
+
+    answerFromES.push(orientationHistory);
     console.log("optimalPVOrientation: ", optimalPVOrientation)
 
-    const angleFacts = [
-        {
-            name: "place",
-            value: pv_instalation_place
-        },
-        {
-            name: "roof_tilt",
-            value: roof_tilt
-        }
-    ]
-    const { answer: optimalPVAngleAnswer, value: optimalPVAngle } = StugnaService.applyPVDesignRuleToFacts("choosing_optimal_angle", angleFacts)
-
-    if (optimalPVAngle == 'roof_tilt') {
-        optimalPVAngle = roof_tilt;
-    }
-
+    // 2.2.2 Optimal tilt angle
+    const angleFacts = StugnaService.buildFacts({
+        place: pv_instalation_place,
+        roof_tilt: roof_tilt
+    });
+    const { value: optimalPVAngle, history: angleHistory } = StugnaService.applyRule("choosing_optimal_angle", angleFacts, "roof_tilt", roof_tilt);
+    answerFromES.push(angleHistory);
     console.log("optimalPVAngle: ", optimalPVAngle)
 
-    // PEC
-    const PECfacts = [
-        {
-            name: "angle",
-            value: optimalPVAngle
-        },
-        {
-            name: "orientation",
-            value: Math.abs(180 - optimalPVOrientation)
-        }
-    ]
-    let { answer: answerPEC, value: PEC } = StugnaService.applyPVDesignRuleToFacts("define_PEC", PECfacts)
-    console.log("PEC: ", PEC)
+    // 2.2.3 PEC calculation
+    const PECfacts = StugnaService.buildFacts({
+        angle: optimalPVAngle,
+        orientation: Math.abs(180 - optimalPVOrientation)
+    });
+    const { value: PEC } = StugnaService.applyRule("define_PEC", PECfacts);
+    console.log("PEC: ", PEC);
 
     console.log(pvElements)
 
-    // inverter
-    const translateInvertorFact = [
-        {
-            name: "name",
-            value: pvElements[0]
-        }
-    ]
-    let { answer: answerTranslateInvertorFact, value: translatedInvertor } = StugnaService.applyPVDesignRuleToFacts("translation", translateInvertorFact)
-    console.log("elements: ", translatedInvertor)
+    // 3.0.1 translate element type (e.g. 'інвертор' → 'inverters')
+    const { value: translatedInvertor, history: answerTranslateInvertorFact } =
+        StugnaService.applyRule("translation", StugnaService.buildFacts({ name: pvElements[0] }));
 
-    const translateFact = [
-        {
-            name: "name",
-            value: pv_type
-        }
-    ]
-    let { answer: answerPvTypeEnglish, value: pvTypeEnglish } = StugnaService.applyPVDesignRuleToFacts("translation", translateFact)
-    console.log("pvTypeEnglish: ", pvTypeEnglish)
+    // 3.0.2 translate PV type (e.g. 'мережева' → 'on-grid')
+    const { value: pvTypeEnglish, history: answerPvTypeEnglish } =
+        StugnaService.applyRule("translation", StugnaService.buildFacts({ name: pv_type }));
 
+    // 3.1 find suitable inverters
     const invertersParams = {
         type: pvTypeEnglish,
         nominal_power_dc_kW: {
@@ -171,9 +132,7 @@ async function createPVdesign(pvData) {
             $lte: pv_power * 1.2,
         },
     }
-
     const suitableInverters = await DBService.findElementByName(translatedInvertor, invertersParams);
-
     console.log(suitableInverters);
 
     if (!suitableInverters || suitableInverters.length === 0) {
@@ -191,30 +150,16 @@ async function createPVdesign(pvData) {
         };
     }
 
+    // 3.2 find suitable panels to inverters
 
 
 
 
-
-    // const principalElementsData = await Promise.all(
-    //     pvElements.map(async el => {
-    //         const name = el.trim();
-    //         const facts = [{ name: "name", value: name }]
-    //         const { translatedName, history } = StugnaService.applyPVDesignRuleToFacts("translation", facts)
-    //         console.log(history)
-    //         const data = await DBService.findElementByName(translatedName);
-    //         return { name, data }
-    //     }));
-
-
-
-
-    return { answer: answerFromES, pv: { pvPlace, yearRegionInsolation, monthRegionInsolationRange } };
+    return { answer: answerFromES, pv: { optimalPVAngle, optimalPVOrientation, optimalPVPlace, yearRegionInsolation, monthRegionInsolationRange } };
 
     // генерувати кілька варіантів по фінансам (дешево, середньо, дорого)
     // якщо площі замало для очікуваної потужності - сказати про це і запропонувати максимальний варіант
     // надсилати графік виробленої е-енергії за рік (прогноз), прогноз окупності
-    // оптимальне розташування фотопанелей (орієнтація + кут)
 }
 
 // TODO: перевизначення наміру після заповнення поля або після відхилення від головного наміру
