@@ -3,19 +3,19 @@ import Panels from "../schemas/panels.js"
 import Charges from "../schemas/charges.js"
 import { StugnaService } from "./stugnaService.js"
 
-async function findElementByName(name) {
+async function findElementByName(name, filters = {}) {
     switch (name) {
         case "inverters":
-            return await Inverters.find();
+            return await Inverters.find(filters);
 
         case "panels":
-            return await Panels.find();
+            return await Panels.find(filters);
 
         case "charges":
-            return await Charges.find()
+            return await Charges.find(filters);
 
         default:
-            return 0;
+            return [];
     }
 }
 

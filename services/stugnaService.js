@@ -43,16 +43,13 @@ function applyPVDesignRuleToFacts(ruleName, facts) {
     const res = es.factGet(ruleName);
 
     if (!res) {
-        console.error(`❌ Fact '${ruleName}' not found`);
+        console.error(`Fact '${ruleName}' not found`);
         return { value: null, history: [] };
     }
 
     const { value, history } = res;
     return { value, history };
 }
-
-// AND roof_orientation > 0
-//  AND (roof_orientation >= 135 AND roof_orientation <= 225)
 
 export const StugnaService = {
     determinePVtype,

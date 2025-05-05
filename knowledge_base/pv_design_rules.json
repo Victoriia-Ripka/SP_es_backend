@@ -17,20 +17,37 @@
         "factValue": "земля",
         "description": "СЕС з будь-якою потужністю можна розташовувати на землі"
     },
+
+    
     {
         "condition": "name = 'фотопанелі'",
-        "factName": "translation_comp_name",
+        "factName": "translation",
         "factValue": "panels"
     },
     {
         "condition": "name = 'інвертор'",
-        "factName": "translation_comp_name",
+        "factName": "translation",
         "factValue": "inverters"
     },
     {
         "condition": "name = 'АКБ'",
-        "factName": "translation_comp_name",
+        "factName": "translation",
         "factValue": "charges"
+    },
+    {
+        "condition": "name = 'автономна'",
+        "factName": "translation",
+        "factValue": "off-grid"
+    },
+    {
+        "condition": "name = 'гібридна'",
+        "factName": "translation",
+        "factValue": "hybrid"
+    },
+    {
+        "condition": "name = 'мережева'",
+        "factName": "translation",
+        "factValue": "on-grid"
     },
     
 

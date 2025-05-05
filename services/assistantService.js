@@ -121,7 +121,7 @@ async function createPVdesign(pvData) {
             value: roof_tilt
         }
     ]
-    let { answer: optimalPVAngleAnswer, value: optimalPVAngle } = StugnaService.applyPVDesignRuleToFacts("choosing_optimal_angle", angleFacts)
+    const { answer: optimalPVAngleAnswer, value: optimalPVAngle } = StugnaService.applyPVDesignRuleToFacts("choosing_optimal_angle", angleFacts)
 
     if (optimalPVAngle == 'roof_tilt') {
         optimalPVAngle = roof_tilt;
@@ -140,26 +140,76 @@ async function createPVdesign(pvData) {
             value: Math.abs(180 - optimalPVOrientation)
         }
     ]
-    const { answer, value: PEC } = StugnaService.applyPVDesignRuleToFacts("define_PEC", PECfacts)
+    let { answer: answerPEC, value: PEC } = StugnaService.applyPVDesignRuleToFacts("define_PEC", PECfacts)
     console.log("PEC: ", PEC)
 
     console.log(pvElements)
 
     // inverter
-    const principalElementsData = await Promise.all(
-        pvElements.map(async el => {
-            const name = el.trim();
-            const facts = [{ name: "name", value: name }]
-            const { translatedName, history } = StugnaService.applyPVDesignRuleToFacts("translation_comp_name", facts)
-            console.log(history)
-            const data = await DBService.findElementByName(translatedName);
-            return { name, data }
-        }));
+    const translateInvertorFact = [
+        {
+            name: "name",
+            value: pvElements[0]
+        }
+    ]
+    let { answer: answerTranslateInvertorFact, value: translatedInvertor } = StugnaService.applyPVDesignRuleToFacts("translation", translateInvertorFact)
+    console.log("elements: ", translatedInvertor)
+
+    const translateFact = [
+        {
+            name: "name",
+            value: pv_type
+        }
+    ]
+    let { answer: answerPvTypeEnglish, value: pvTypeEnglish } = StugnaService.applyPVDesignRuleToFacts("translation", translateFact)
+    console.log("pvTypeEnglish: ", pvTypeEnglish)
+
+    const invertersParams = {
+        type: pvTypeEnglish,
+        nominal_power_dc_kW: {
+            $gte: pv_power * 0.8,
+            $lte: pv_power * 1.2,
+        },
+    }
+
+    const suitableInverters = await DBService.findElementByName(translatedInvertor, invertersParams);
+
+    console.log(suitableInverters);
+
+    if (!suitableInverters || suitableInverters.length === 0) {
+        const optimalParams = {
+            required_power_kW: pv_power,
+            type: invertersParams.type,
+        };
+
+        return {
+            answer: "No suitable inverters found.",
+            pv: {
+                optimalParams,
+                requiredElement: "інвертор"
+            }
+        };
+    }
 
 
 
 
-    return { answerFromES, pv: { pvPlace, yearRegionInsolation, monthRegionInsolationRange }, principalElementsData };
+
+
+    // const principalElementsData = await Promise.all(
+    //     pvElements.map(async el => {
+    //         const name = el.trim();
+    //         const facts = [{ name: "name", value: name }]
+    //         const { translatedName, history } = StugnaService.applyPVDesignRuleToFacts("translation", facts)
+    //         console.log(history)
+    //         const data = await DBService.findElementByName(translatedName);
+    //         return { name, data }
+    //     }));
+
+
+
+
+    return { answer: answerFromES, pv: { pvPlace, yearRegionInsolation, monthRegionInsolationRange } };
 
     // генерувати кілька варіантів по фінансам (дешево, середньо, дорого)
     // якщо площі замало для очікуваної потужності - сказати про це і запропонувати максимальний варіант

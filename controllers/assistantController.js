@@ -19,6 +19,6 @@ export function setPVtype(req, res) {
 
 export async function designPV(req, res) {
     const { pvData } = req.body;
-    const { answerFromES, pv, principalElementsData } = await assistantService.createPVdesign(pvData);
-    res.status(200).json({ answerFromES, pv, principalElementsData });
+    const { answer, pv, principalElementsData } = await assistantService.createPVdesign(pvData);
+    res.status(200).json({ answer, pv, principalElementsData });
 }
