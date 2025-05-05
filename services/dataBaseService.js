@@ -4,13 +4,7 @@ import Charges from "../schemas/charges.js"
 import { StugnaService } from "./stugnaService.js"
 
 async function findElementByName(name) {
-    const facts = [{
-        name: "name",
-        value: name
-    }]
-    const translatedName = StugnaService.applyPVDesignRuleToFacts("translation_comp_name", facts)
-
-    switch (translatedName) {
+    switch (name) {
         case "inverters":
             return await Inverters.find();
 
