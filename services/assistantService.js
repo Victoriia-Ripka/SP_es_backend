@@ -121,7 +121,6 @@ async function createPVdesign(pvData) {
         },
     }
     const suitableInverters = await dbService.findElementByName(translatedInvertor, invertersParams);
-    console.log(suitableInverters);
 
     if (!suitableInverters || suitableInverters.length === 0) {
         const optimalParams = {
@@ -150,7 +149,6 @@ async function createPVdesign(pvData) {
 
     if (optimalPVPlace === "дах" && optimalPVAngle > 15) {
         // розрахунок панелей на даху 
-        console.log("roof")
         const areaWidth = width * 1000;   // convert measurs to mm
         const areaLength = length * 1000;
         const panelSpacing = distanceAmongPanels * 10 || 20;
@@ -267,12 +265,36 @@ async function createPVdesign(pvData) {
         return { inverter, compatiblePanels };
     }).filter(Boolean);
 
+    // 4.0.1 translate element type
+    const { value: translatedCharge, history: answerTranslateChargeFact } = lmService.applyRule("translation", lmService.buildFacts({ name: pvElements[2] }));
 
-    const suitableElements = [...suitableInvertersWithPanels]
-    return { answer: answerFromES, pv: { optimalPVPlace, optimalPVOrientation, optimalPVAngle, pvElements, suitableElements } };
+    let suitableElements = [...suitableInvertersWithPanels]
+
+    // 4 find charge if it's needed to PV type 
+    if (pvElements[2]) {
+        const charges = await dbService.findElementByName(translatedCharge);
+
+        suitableElements = suitableInvertersWithPanels.map(item => {
+            const { inverter } = item;
+            const suitableCharges = CalculatorService.getSuitableBatteryChargeCount({ inverter, charges });
+
+            return {
+                ...item,
+                suitableCharges: suitableCharges || 'Не знайдено відповідних АКБ'
+            };
+        });
+    }
+
+    // 5 create combination with all elements
+    const combinations = CalculatorService.generateCombinations(suitableElements);
+
+    // 5.1 Сортуємо за ціною
+    const sortedCombinations = combinations.sort((a, b) => a.total_price - b.total_price);
+    const middleIndex = Math.floor(sortedCombinations.length / 2);
+    const threeOptions = [sortedCombinations[0], sortedCombinations[middleIndex], sortedCombinations[sortedCombinations.length - 1]];
+
+    return { answer: answerFromES, pv: { pv_type, optimalPVPlace, optimalPVOrientation, optimalPVAngle, pvElements, threeOptions } };
     // yearRegionInsolation, monthRegionInsolationRange
-
-    // генерувати кілька варіантів по фінансам (дешево, середньо, дорого)
     // надсилати графік виробленої е-енергії за рік (прогноз), прогноз окупності
 }
 

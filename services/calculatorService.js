@@ -51,7 +51,7 @@ function getFittingPanelCountOnGround({ panelWidth, panelLength, areaWidth, area
             rows: rowsHorizontal,
             cols: colsHorizontal,
             count: countHorizontal,
-            distance_between_rows: parseFloat((distanceAmongRows/1000).toFixed(2))
+            distance_between_rows: parseFloat((distanceAmongRows / 1000).toFixed(2))
         };
     } else {
         return {
@@ -59,11 +59,10 @@ function getFittingPanelCountOnGround({ panelWidth, panelLength, areaWidth, area
             rows: rowsVertical,
             cols: colsVertical,
             count: countVertical,
-            distance_between_rows: parseFloat((distanceAmongRows/1000).toFixed(2))
+            distance_between_rows: parseFloat((distanceAmongRows / 1000).toFixed(2))
         };
     }
 }
-
 
 function determinePanelConnectionType(panel, inverter) {
     const Voc = panel.open_circuit_voltage_v;
@@ -152,8 +151,88 @@ function determinePanelConnectionType(panel, inverter) {
     return best || null;
 }
 
+function getSuitableBatteryChargeCount({ inverter, charges }) {
+    const minBatteryPower = inverter.nominal_power_dc_kW * 0.5;
+    const maxBatteryPower = inverter.nominal_power_dc_kW * 1.7;
+    const requiredVoltage = inverter.battery_voltage_v;
+    const maxChargeCurrent = inverter.max_charge_current_a;
+
+    const suitableCharges = charges
+        .map(charge => {
+            const voltageInRange = charge.voltage_range_V && charge.voltage_range_V.min <= requiredVoltage && charge.voltage_range_V.max >= requiredVoltage;
+            const nominalVoltageMatch = charge.nominal_voltage_V === requiredVoltage;
+
+            if (!voltageInRange && !nominalVoltageMatch) return null;
+
+            const singleChargePower = charge.battery_block_capacity_kWh || charge.battery_capacity_kWh;
+
+            // determine how many blocks needed to reach at least minBatteryPower
+            const minCount = Math.ceil(minBatteryPower / singleChargePower);
+            const maxCount = Math.floor(maxBatteryPower / singleChargePower);
+
+            if (minCount <= 0 || maxCount <= 0) return null;
+
+            // estimate total current draw at required voltage (approx)
+            const powerForCurrentCheck = minCount * singleChargePower * 1000; // convert kWh to W
+            const estimatedCurrent = powerForCurrentCheck / requiredVoltage;
+
+            if (estimatedCurrent > maxChargeCurrent) return null;
+
+            return {
+                ...charge,
+                charge_count: minCount,
+                total_charge_capacity_kWh: minCount * singleChargePower,
+            };
+        })
+        .filter(Boolean);
+
+    return suitableCharges;
+}
+
+const generateCombinations = (suitableElements) => {
+    const combinations = [];
+
+    suitableElements.forEach(item => {
+        const { inverter, compatiblePanels, suitableCharges } = item;
+
+        compatiblePanels.forEach(panel => {
+            const panelCount = panel.number_panels_in_system;
+            const panelWeight = panel.weight;
+            const panelPrice = panel.price;
+            const panelPowerW = panel.maximum_power_w;
+
+            const baseCombination = {
+                inverter,
+                panel,
+                total_panel_weight_kg: (panelCount * panelWeight).toFixed(1),
+                total_power_kW: ((panelCount * panelPowerW) / 1000).toFixed(2),
+                total_price: (inverter.price + panelCount * panelPrice).toFixed(2)
+            };
+
+            if (suitableCharges && suitableCharges.length > 0) {
+                suitableCharges.forEach(charge => {
+                    const { charge_count, price: chargePrice } = charge;
+
+                    combinations.push({
+                        ...baseCombination,
+                        charge,
+                        total_price: (baseCombination.total_price + charge_count * chargePrice).toFixed(2)
+                    });
+                });
+            } else {
+                combinations.push(baseCombination);
+            }
+        });
+    });
+
+    return combinations;
+};
+
+
 export const CalculatorService = {
     getFittingPanelCountOnRoof,
     getFittingPanelCountOnGround,
-    determinePanelConnectionType
+    determinePanelConnectionType,
+    getSuitableBatteryChargeCount,
+    generateCombinations
 }
