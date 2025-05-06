@@ -18,7 +18,7 @@
         "description": "СЕС з будь-якою потужністю можна розташовувати на землі"
     },
 
-    
+
     {
         "condition": "name = 'фотопанелі'",
         "factName": "translation",
@@ -70,28 +70,29 @@
         "factValue": "roof_orientation",
         "description": "Фотопанелі СЕС на даху з такою орієнтацією дають достатньо хороші результати"
     },
+
     {
         "condition": "place = 'земля' OR roof_tilt = -1",
-        "factName": "choosing_optimal_angle",
+        "factName": "set_optinal_angle",
         "factValue": 30,
         "description": "Фотопанелі СЕС на грунті розташовуються під оптимальним кутом для України: 30*"
 
     },
     {
         "condition": "place = 'дах' AND roof_tilt <= 15 AND roof_tilt >= 0",
-        "factName": "choosing_optimal_angle",
+        "factName": "set_optinal_angle",
         "factValue": 15,
         "description": "Фотопанелі СЕС на пласкому даху розташовуються під кутом 15* для зменшення опору дії вітру"
     },
     {
         "condition": "place = 'дах' AND roof_tilt > 15 AND roof_tilt < 60",
-        "factName": "choosing_optimal_angle",
+        "factName": "set_optinal_angle",
         "factValue": "roof_tilt",
         "description": "Фотопанелі СЕС на даху з помірним схилом розташовуються під данним кутом"
     },
     {
         "condition": "place = 'дах' AND roof_tilt >= 60",
-        "factName": "choosing_optimal_angle",
+        "factName": "set_optinal_angle",
         "factValue": 30,
         "description": "Фотопанелі СЕС на даху з крутим схилом розташовуються під оптимальним кутом для України: 30* за допомогою додаткових кріплень"
     }

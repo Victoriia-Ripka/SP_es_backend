@@ -4,31 +4,33 @@ import { LogicalMachine } from '../LogicalMachine/LogicalMachine.js'
 
 export class LogicalMachineService {
     constructor() {
+        this.isTrigger = true;
+
         this.pvTypeRules = JSON.parse(fs.readFileSync(path.resolve('./knowledge_base/pv_type_rules.json'), 'utf8'));
         this.pvDesignRules = JSON.parse(fs.readFileSync(path.resolve('./knowledge_base/pv_design_rules.json'), 'utf8'));
         this.pvPECRules = JSON.parse(fs.readFileSync(path.resolve('./knowledge_base/pec_rules.json'), 'utf8'));
 
-        const options = {
+        this.lmOptions = {
             toSaveEvents: true,
-            toExplainMore: true
+            toExplainMore: false,
+            passCountMax: 16,
         };
-
-        this.lm = new LogicalMachine(options);
     }
 
 
     // TOFIX: при надсиланні обʼєкта з різними даними з ЕС видається той самий результат ???
     // TODO: test
     determinePVtype(electric_autonomy, electricity_grid_connection, money_limit) {
+        this.lm = new LogicalMachine(this.lmOptions);
+        this.lm.rulesImport(this.pvTypeRules, this.isTrigger);
+
         const facts = [
             { name: "is_electric_autonomy_important", value: electric_autonomy ? 'TRUE' : 'FALSE' },
             { name: "is_possible_electricity_grid_connection", value: electricity_grid_connection ? 'TRUE' : 'FALSE' },
             { name: "is_exist_money_limit", value: money_limit ? 'TRUE' : 'FALSE' }
         ];
 
-        this.lm.rulesImport(this.pvTypeRules);
-        this.lm.factsImport(facts);
-
+        this.lm.factsImport(facts, this.isTrigger);
         const res = this.lm.factGet('pv_type');
 
         if (!res) {
@@ -40,14 +42,15 @@ export class LogicalMachineService {
     }
 
     determinePEC(angle, orientation) {
+        this.lm = new LogicalMachine(this.lmOptions);
+        this.lm.rulesImport(this.pvPECRules, this.isTrigger);
+
         const facts = [
             { name: "angle", value: angle },
             { name: "orientation", value: orientation },
         ];
 
-        this.lm.rulesImport(this.pvPECRules);
-        this.lm.factsImport(facts);
-
+        this.lm.factsImport(facts, this.isTrigger);
         const res = this.lm.factGet('define_PEC');
 
         if (!res) {
@@ -59,8 +62,9 @@ export class LogicalMachineService {
     }
 
     applyPVDesignRuleToFacts(ruleName, facts) {
-        this.lm.rulesImport(this.pvDesignRules);
-        this.lm.factsImport(facts);
+        this.lm = new LogicalMachine(this.lmOptions);
+        this.lm.rulesImport(this.pvDesignRules, this.isTrigger);
+        this.lm.factsImport(facts, this.isTrigger);
 
         const res = this.lm.factGet(ruleName);
 

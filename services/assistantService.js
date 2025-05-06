@@ -82,7 +82,6 @@ async function createPVdesign(pvData) {
     const { value: optimalPVPlace, history: installationPlaceHistory } = lmService.applyRule("instalation_place", placeFacts);
     answerFromES.push(installationPlaceHistory);
     console.log("optimalPVPlace: ", optimalPVPlace)
-
     if (optimalPVPlace === 'земля' && pv_instalation_place === 'дах') {
         const errorAnswer = [installationPlaceHistory, 'Вкажіть довжину і ширину ділянки під фотопанелі на землі.']
         return { answer: errorAnswer }
@@ -92,60 +91,57 @@ async function createPVdesign(pvData) {
     // Optimal orientation
     const orientationFacts = lmService.buildFacts({ place: pv_instalation_place, roof_orientation });
     const { value: optimalPVOrientation, history: orientationHistory } = lmService.applyRule("choosing_optimal_orientation", orientationFacts, "roof_orientation", roof_orientation);
-
     if (!optimalPVOrientation) {
         return { answer: orientationHistory[0] };
     }
-
     answerFromES.push(orientationHistory);
     console.log("optimalPVOrientation: ", optimalPVOrientation)
 
     // 2.2.2 Optimal tilt angle
     const angleFacts = lmService.buildFacts({ place: pv_instalation_place, roof_tilt });
-    console.log(angleFacts)
-    const { value: optimalPVAngle, history: angleHistory } = lmService.applyRule("choosing_optimal_angle", angleFacts, "roof_tilt", roof_tilt);
+    const { value: optimalPVAngle, history: angleHistory } = lmService.applyRule("set_optinal_angle", angleFacts, "roof_tilt", roof_tilt);
     answerFromES.push(angleHistory);
     console.log("optimalPVAngle: ", optimalPVAngle)
 
     // 2.2.3 PEC calculation
-    // const PEC = lmService.determinePEC(optimalPVAngle, Math.abs(180 - optimalPVOrientation));
-    // console.log("PEC: ", PEC);
+    const PEC = lmService.determinePEC(optimalPVAngle, Math.abs(180 - optimalPVOrientation));
+    console.log("PEC: ", PEC);
 
-    // console.log(pvElements)
+    console.log(pvElements)
 
     // 3.0.1 translate element type (e.g. 'інвертор' → 'inverters')
-    // const { value: translatedInvertor, history: answerTranslateInvertorFact } =
-    //     LogicalMachineService.applyRule("translation", LogicalMachineService.buildFacts({ name: pvElements[0] }));
+    const { value: translatedInvertor, history: answerTranslateInvertorFact } =
+        lmService.applyRule("translation", lmService.buildFacts({ name: pvElements[0] }));
 
     // 3.0.2 translate PV type (e.g. 'мережева' → 'on-grid')
-    // const { value: pvTypeEnglish, history: answerPvTypeEnglish } =
-    //     LogicalMachineService.applyRule("translation", LogicalMachineService.buildFacts({ name: pv_type }));
+    const { value: pvTypeEnglish, history: answerPvTypeEnglish } =
+        lmService.applyRule("translation", lmService.buildFacts({ name: pv_type }));
 
     // 3.1 find suitable inverters
-    // const invertersParams = {
-    //     type: pvTypeEnglish,
-    //     nominal_power_dc_kW: {
-    //         $gte: pv_power * 0.8,
-    //         $lte: pv_power * 1.2,
-    //     },
-    // }
-    // const suitableInverters = await DBService.findElementByName(translatedInvertor, invertersParams);
-    // console.log(suitableInverters);
+    const invertersParams = {
+        type: pvTypeEnglish,
+        nominal_power_dc_kW: {
+            $gte: pv_power * 0.8,
+            $lte: pv_power * 1.2,
+        },
+    }
+    const suitableInverters = await dbService.findElementByName(translatedInvertor, invertersParams);
+    console.log(suitableInverters);
 
-    // if (!suitableInverters || suitableInverters.length === 0) {
-    //     const optimalParams = {
-    //         required_power_kW: pv_power,
-    //         type: invertersParams.type,
-    //     };
+    if (!suitableInverters || suitableInverters.length === 0) {
+        const optimalParams = {
+            required_power_kW: pv_power,
+            type: invertersParams.type,
+        };
 
-    //     return {
-    //         answer: "No suitable inverters found.",
-    //         pv: {
-    //             optimalParams,
-    //             requiredElement: "інвертор"
-    //         }
-    //     };
-    // }
+        return {
+            answer: "No suitable inverters found.",
+            pv: {
+                optimalParams,
+                requiredElement: "інвертор"
+            }
+        };
+    }
 
 
 
