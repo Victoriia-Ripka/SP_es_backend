@@ -167,7 +167,6 @@ async function createPVdesign(pvData) {
 
             // лекція стор. 17
             const totalPVPowerKw = (count * panel.maximum_power_w) / 1000;
-            console.log(`Total PV power (kW): ${totalPVPowerKw}`);
 
             if (totalPVPowerKw > pv_power) {
                 const cleanPanel = panel.toObject();
@@ -214,12 +213,10 @@ async function createPVdesign(pvData) {
                 beta: betaRad,
                 a: aRad
             });
-            console.log(fittingResult)
             const { orientation, rows, cols, count, distance_between_rows } = fittingResult;
 
             // лекція стор. 17
             const totalPVPowerKw = (count * panel.maximum_power_w) / 1000;
-            console.log(`Total PV power (kW): ${totalPVPowerKw}`);
 
             if (totalPVPowerKw > pv_power) {
                 const cleanPanel = panel.toObject();
@@ -249,8 +246,6 @@ async function createPVdesign(pvData) {
 
     }
 
-
-
     // 3.3 find suitable panels to inverters
     const suitableInvertersWithPanels = suitableInverters.map(inverter => {
 
@@ -272,10 +267,10 @@ async function createPVdesign(pvData) {
         return { inverter, compatiblePanels };
     }).filter(Boolean);
 
-    console.log("Result: ", suitableInvertersWithPanels.map(item => item.compatiblePanels));
 
-
-    return { answer: answerFromES, pv: { optimalPVAngle, optimalPVOrientation, optimalPVPlace, yearRegionInsolation, monthRegionInsolationRange } };
+    const suitableElements = [...suitableInvertersWithPanels]
+    return { answer: answerFromES, pv: { optimalPVPlace, optimalPVOrientation, optimalPVAngle, pvElements, suitableElements } };
+    // yearRegionInsolation, monthRegionInsolationRange
 
     // генерувати кілька варіантів по фінансам (дешево, середньо, дорого)
     // надсилати графік виробленої е-енергії за рік (прогноз), прогноз окупності
