@@ -1,11 +1,14 @@
 import { Helpers } from '../helpers/index.js';
-import { KBService } from './knowledgeBaseService.js'
 import { UserIntentService } from './userIntentService.js'
-import { StugnaService } from './stugnaService.js';
+import { KBService } from './knowledgeBaseService.js'
+import { LogicalMachineService } from './logicalMachineService.js';
 import { DBService } from './dataBaseService.js';
 import fs from 'fs';
 import path from 'path';
 
+const lmService = new LogicalMachineService();
+const kbSerice = new KBService();
+const dbService = new DBService();
 
 const insolationFile = JSON.parse(fs.readFileSync(path.resolve('./knowledge_base/insolation.json'), 'utf8'));
 
@@ -40,9 +43,7 @@ function sendFirstMesssage() {
 }
 
 function determinationPVtype(electric_autonomy, electricity_grid_connection, money_limit) {
-    const result = StugnaService.determinePVtype(electric_autonomy, electricity_grid_connection, money_limit);
-    const type = result.value;
-    const rule = result.history[0];
+    const { type, message: rule } = lmService.determinePVtype(electric_autonomy, electricity_grid_connection, money_limit);
     return { type, rule };
 }
 
@@ -53,19 +54,21 @@ async function createPVdesign(pvData) {
     const {
         pv_power = '',
         pv_instalation_place = '',
-        pv_area: {
-            width = 0,
-            height = 0,
-            area = 0
-        } = {},
+        pv_area = {},
         roof_tilt = '',
         roof_orientation = '',
         pv_type = '',
         pv_location = ''
     } = pvData || {};
 
+    const {
+        width = 0,
+        height = 0,
+        area = 0
+    } = pv_area;
+
     // 1.1
-    const pvTypesData = KBService.getKnowledge("СЕС", "види");
+    const pvTypesData = kbSerice.getKnowledge("СЕС", "види");
     const pvElements = pvTypesData[pv_type]["елементи системи"];
     // const pvExtraElements = pvTypesData[pv_type]["додаткові елементи системи"];
 
@@ -75,20 +78,20 @@ async function createPVdesign(pvData) {
     const monthRegionInsolationRange = regionInsolationData["по місяцям"];
 
     // 2.1 check optimal PV instalation place
-    const placeFacts = StugnaService.buildFacts({ pv_instalation_place, pv_power });
-    const { value: optimalPVPlace, history: installationPlaceHistory } = StugnaService.applyRule("instalation_place", placeFacts);
+    const placeFacts = lmService.buildFacts({ pv_instalation_place, pv_power });
+    const { value: optimalPVPlace, history: installationPlaceHistory } = lmService.applyRule("instalation_place", placeFacts);
     answerFromES.push(installationPlaceHistory);
     console.log("optimalPVPlace: ", optimalPVPlace)
 
     if (optimalPVPlace === 'земля' && pv_instalation_place === 'дах') {
         const errorAnswer = [installationPlaceHistory, 'Вкажіть довжину і ширину ділянки під фотопанелі на землі.']
-        return {answer: errorAnswer }
+        return { answer: errorAnswer }
     }
 
     // 2.2.1
     // Optimal orientation
-    const orientationFacts = StugnaService.buildFacts({ place: pv_instalation_place, roof_orientation });
-    const { value: optimalPVOrientation, history: orientationHistory } = StugnaService.applyRule("choosing_optimal_orientation", orientationFacts, "roof_orientation", roof_orientation);
+    const orientationFacts = lmService.buildFacts({ place: pv_instalation_place, roof_orientation });
+    const { value: optimalPVOrientation, history: orientationHistory } = lmService.applyRule("choosing_optimal_orientation", orientationFacts, "roof_orientation", roof_orientation);
 
     if (!optimalPVOrientation) {
         return { answer: orientationHistory[0] };
@@ -98,60 +101,80 @@ async function createPVdesign(pvData) {
     console.log("optimalPVOrientation: ", optimalPVOrientation)
 
     // 2.2.2 Optimal tilt angle
-    const angleFacts = StugnaService.buildFacts({
-        place: pv_instalation_place,
-        roof_tilt: roof_tilt
-    });
-    const { value: optimalPVAngle, history: angleHistory } = StugnaService.applyRule("choosing_optimal_angle", angleFacts, "roof_tilt", roof_tilt);
+    const angleFacts = lmService.buildFacts({ place: pv_instalation_place, roof_tilt });
+    console.log(angleFacts)
+    const { value: optimalPVAngle, history: angleHistory } = lmService.applyRule("choosing_optimal_angle", angleFacts, "roof_tilt", roof_tilt);
     answerFromES.push(angleHistory);
     console.log("optimalPVAngle: ", optimalPVAngle)
 
     // 2.2.3 PEC calculation
-    const PECfacts = StugnaService.buildFacts({
-        angle: optimalPVAngle,
-        orientation: Math.abs(180 - optimalPVOrientation)
-    });
-    const { value: PEC } = StugnaService.applyRule("define_PEC", PECfacts);
-    console.log("PEC: ", PEC);
+    // const PEC = lmService.determinePEC(optimalPVAngle, Math.abs(180 - optimalPVOrientation));
+    // console.log("PEC: ", PEC);
 
-    console.log(pvElements)
+    // console.log(pvElements)
 
     // 3.0.1 translate element type (e.g. 'інвертор' → 'inverters')
-    const { value: translatedInvertor, history: answerTranslateInvertorFact } =
-        StugnaService.applyRule("translation", StugnaService.buildFacts({ name: pvElements[0] }));
+    // const { value: translatedInvertor, history: answerTranslateInvertorFact } =
+    //     LogicalMachineService.applyRule("translation", LogicalMachineService.buildFacts({ name: pvElements[0] }));
 
     // 3.0.2 translate PV type (e.g. 'мережева' → 'on-grid')
-    const { value: pvTypeEnglish, history: answerPvTypeEnglish } =
-        StugnaService.applyRule("translation", StugnaService.buildFacts({ name: pv_type }));
+    // const { value: pvTypeEnglish, history: answerPvTypeEnglish } =
+    //     LogicalMachineService.applyRule("translation", LogicalMachineService.buildFacts({ name: pv_type }));
 
     // 3.1 find suitable inverters
-    const invertersParams = {
-        type: pvTypeEnglish,
-        nominal_power_dc_kW: {
-            $gte: pv_power * 0.8,
-            $lte: pv_power * 1.2,
-        },
-    }
-    const suitableInverters = await DBService.findElementByName(translatedInvertor, invertersParams);
-    console.log(suitableInverters);
+    // const invertersParams = {
+    //     type: pvTypeEnglish,
+    //     nominal_power_dc_kW: {
+    //         $gte: pv_power * 0.8,
+    //         $lte: pv_power * 1.2,
+    //     },
+    // }
+    // const suitableInverters = await DBService.findElementByName(translatedInvertor, invertersParams);
+    // console.log(suitableInverters);
 
-    if (!suitableInverters || suitableInverters.length === 0) {
-        const optimalParams = {
-            required_power_kW: pv_power,
-            type: invertersParams.type,
-        };
+    // if (!suitableInverters || suitableInverters.length === 0) {
+    //     const optimalParams = {
+    //         required_power_kW: pv_power,
+    //         type: invertersParams.type,
+    //     };
 
-        return {
-            answer: "No suitable inverters found.",
-            pv: {
-                optimalParams,
-                requiredElement: "інвертор"
-            }
-        };
-    }
+    //     return {
+    //         answer: "No suitable inverters found.",
+    //         pv: {
+    //             optimalParams,
+    //             requiredElement: "інвертор"
+    //         }
+    //     };
+    // }
+
+
 
     // 3.2 find suitable panels to inverters
+    // const { value: translatedPanel, history } =
+    //     LogicalMachineService.applyRule("translation", LogicalMachineService.buildFacts({ name: pvElements[1] }));
+    // const panels = await DBService.findElementByName(translatedPanel);
+    // console.log(panels.length);
 
+    // width
+    // length
+    // const voltageMargin = 0.9;
+
+    // suitableInverters.forEach(inverter => {
+    //     const maxVoc = inverter.max_input_voltage_v * voltageMargin;
+    //     const mpptMin = inverter.mppt_voltage_range_v.min;
+    //     const mpptMax = inverter.mppt_voltage_range_v.max;
+    //     const maxCurrent = inverter.max_mppt_current_a;
+
+    //     panels.forEach(panel => {
+    //         const Voc = panel.open_circuit_voltage_v;
+    //         const Vmp = panel.voltage_at_maximum_power_v;
+    //         const Imp = panel.current_at_maximum_power_a;
+
+    //     })
+
+    //     return 0;
+    // })
+    // console.log("Result:", suitableInvertersWithPanels);
 
 
 

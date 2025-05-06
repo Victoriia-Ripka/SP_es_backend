@@ -1,51 +1,55 @@
 import fs from 'fs';
 import path from 'path';
 
-const paths = {
-  "СЕС": 'knowledge_base/ses.json',
-  "контролер заряду": 'knowledge_base/controllers.json',
-  "фотобатарея": 'knowledge_base/batteries.json'
-};
-
-function loadKnowledgeBase(field, detail = '') {
-  const relativePath = paths[field.trim()];
-
-  if (!relativePath) {
-    throw new Error(`Knowledge base not found for field: ${field}`);
+export class KBService {
+  constructor() {
+    this.paths = {
+      "СЕС": 'knowledge_base/ses.json',
+      "контролер заряду": 'knowledge_base/controllers.json',
+      "фотобатарея": 'knowledge_base/batteries.json'
+    };
   }
 
-  const knowledgePath = path.resolve(relativePath);
-  const raw = fs.readFileSync(knowledgePath, 'utf-8');
-  const detailInfoJSON = JSON.parse(raw);
 
-  let neededDetailInfo;
+  loadKnowledgeBase(field, detail = '') {
+    const relativePath = this.paths[field.trim()];
 
-  if (detail) {
-    // Якщо є уточнення — беремо конкретну характеристику
-    neededDetailInfo = detailInfoJSON[field.trim()][detail.trim()];
-  } else {
-    // Якщо немає — беремо загальну інформацію
-    neededDetailInfo = detailInfoJSON[field.trim()]['назва'] + " " + detailInfoJSON[field.trim()]['завдання'];
+    if (!relativePath) {
+      throw new Error(`Knowledge base not found for field: ${field}`);
+    }
+
+    const knowledgePath = path.resolve(relativePath);
+    const raw = fs.readFileSync(knowledgePath, 'utf-8');
+    const detailInfoJSON = JSON.parse(raw);
+
+    const trimmedField = field.trim();
+    const trimmedDetail = detail.trim();
+
+    if (detail) {
+      // Якщо є уточнення — беремо конкретну характеристику
+      return detailInfoJSON[trimmedField][trimmedDetail];
+    } else {
+      // Якщо немає — беремо загальну інформацію
+      const info = detailInfoJSON[trimmedField];
+      return `${info['назва']} ${info['завдання']}`;
+    }
   }
 
-  return neededDetailInfo;
-}
-
-function getKnowledge(field, detail = '') {
-  try {
-    return loadKnowledgeBase(field, detail);
-  } catch (err) {
-    throw new Error(`Не вдалося завантажити базу знань для: ${field}`);
+  getKnowledge(field, detail = '') {
+    try {
+      return this.loadKnowledgeBase(field, detail);
+    } catch (err) {
+      throw new Error(`Не вдалося завантажити базу знань для: ${field}`);
+    }
   }
-}
 
-function getContextFromCache(pv_user_data) {
-  return pv_user_data?.cache?.history?.at(-1) ?? null;
-}
+  getContextFromCache(pv_user_data) {
+    return pv_user_data?.cache?.history?.at(-1) ?? null;
+  }
 
-function getLastField(pv_user_data) {
-  const context = getContextFromCache(pv_user_data);
-  return context?.field ?? null;
-}
+  getLastField(pv_user_data) {
+    const context = this.getContextFromCache(pv_user_data);
+    return context?.field ?? null;
+  }
 
-export const KBService = { getKnowledge, getLastField }
+}
