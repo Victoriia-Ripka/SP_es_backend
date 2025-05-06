@@ -79,13 +79,13 @@
 
     },
     {
-        "condition": "place = 'дах' AND roof_tilt <= 15 AND roof_tilt >= 0",
+        "condition": "place = 'дах' AND roof_tilt < 15 AND roof_tilt >= 0",
         "factName": "set_optinal_angle",
         "factValue": 15,
         "description": "Фотопанелі СЕС на пласкому даху розташовуються під кутом 15* для зменшення опору дії вітру"
     },
     {
-        "condition": "place = 'дах' AND roof_tilt > 15 AND roof_tilt < 60",
+        "condition": "place = 'дах' AND roof_tilt >= 15 AND roof_tilt < 60",
         "factName": "set_optinal_angle",
         "factValue": "roof_tilt",
         "description": "Фотопанелі СЕС на даху з помірним схилом розташовуються під данним кутом"
@@ -95,5 +95,13 @@
         "factName": "set_optinal_angle",
         "factValue": 30,
         "description": "Фотопанелі СЕС на даху з крутим схилом розташовуються під оптимальним кутом для України: 30* за допомогою додаткових кріплень"
+    },
+
+
+    {
+        "condition": "panels_place = 'дах' OR panels_place = 'земля'",
+        "factName": "get_needed_distance_among_panels",
+        "factValue": 0.02,
+        "description": "Між фотопанелями на даху потрібно залишати 2см відстані"
     }
 ]

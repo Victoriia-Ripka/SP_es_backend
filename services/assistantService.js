@@ -3,6 +3,7 @@ import { UserIntentService } from './userIntentService.js'
 import { KBService } from './knowledgeBaseService.js'
 import { LogicalMachineService } from './logicalMachineService.js';
 import { DBService } from './dataBaseService.js';
+import { CalculatorService } from './calculatorService.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -63,8 +64,7 @@ async function createPVdesign(pvData) {
 
     const {
         width = 0,
-        height = 0,
-        area = 0
+        length = 0
     } = pv_area;
 
     // 1.1
@@ -81,7 +81,7 @@ async function createPVdesign(pvData) {
     const placeFacts = lmService.buildFacts({ pv_instalation_place, pv_power });
     const { value: optimalPVPlace, history: installationPlaceHistory } = lmService.applyRule("instalation_place", placeFacts);
     answerFromES.push(installationPlaceHistory);
-    console.log("optimalPVPlace: ", optimalPVPlace)
+
     if (optimalPVPlace === 'земля' && pv_instalation_place === 'дах') {
         const errorAnswer = [installationPlaceHistory, 'Вкажіть довжину і ширину ділянки під фотопанелі на землі.']
         return { answer: errorAnswer }
@@ -95,34 +95,29 @@ async function createPVdesign(pvData) {
         return { answer: orientationHistory[0] };
     }
     answerFromES.push(orientationHistory);
-    console.log("optimalPVOrientation: ", optimalPVOrientation)
 
     // 2.2.2 Optimal tilt angle
     const angleFacts = lmService.buildFacts({ place: pv_instalation_place, roof_tilt });
     const { value: optimalPVAngle, history: angleHistory } = lmService.applyRule("set_optinal_angle", angleFacts, "roof_tilt", roof_tilt);
     answerFromES.push(angleHistory);
-    console.log("optimalPVAngle: ", optimalPVAngle)
 
     // 2.2.3 PEC calculation
     const PEC = lmService.determinePEC(optimalPVAngle, Math.abs(180 - optimalPVOrientation));
-    console.log("PEC: ", PEC);
 
     console.log(pvElements)
 
     // 3.0.1 translate element type (e.g. 'інвертор' → 'inverters')
-    const { value: translatedInvertor, history: answerTranslateInvertorFact } =
-        lmService.applyRule("translation", lmService.buildFacts({ name: pvElements[0] }));
+    const { value: translatedInvertor, history: answerTranslateInvertorFact } = lmService.applyRule("translation", lmService.buildFacts({ name: pvElements[0] }));
 
     // 3.0.2 translate PV type (e.g. 'мережева' → 'on-grid')
-    const { value: pvTypeEnglish, history: answerPvTypeEnglish } =
-        lmService.applyRule("translation", lmService.buildFacts({ name: pv_type }));
+    const { value: pvTypeEnglish, history: answerPvTypeEnglish } = lmService.applyRule("translation", lmService.buildFacts({ name: pv_type }));
 
     // 3.1 find suitable inverters
     const invertersParams = {
         type: pvTypeEnglish,
         nominal_power_dc_kW: {
             $gte: pv_power * 0.8,
-            $lte: pv_power * 1.2,
+            $lte: pv_power * 2,
         },
     }
     const suitableInverters = await dbService.findElementByName(translatedInvertor, invertersParams);
@@ -143,41 +138,146 @@ async function createPVdesign(pvData) {
         };
     }
 
+    // 3.2 find suitable panels to pv_power
+    const { value: translatedPanel, history } = lmService.applyRule("translation", lmService.buildFacts({ name: pvElements[1] }));
+    const panels = await dbService.findElementByName(translatedPanel, { model: "LR5-54HTH-435M" });
+
+    const voltageMargin = 0.9;
+    const systemEfficiency = 0.8
+    const { value: distanceAmongPanels } = lmService.applyPVDesignRuleToFacts("get_needed_distance_among_panels", [{ name: "panels_place", value: optimalPVPlace }]);
+
+    let suitablePanels;
+
+    if (optimalPVPlace === "дах" && optimalPVAngle > 15) {
+        // розрахунок панелей на даху 
+        console.log("roof")
+        const areaWidth = width * 1000;   // convert measurs to mm
+        const areaLength = length * 1000;
+        const panelSpacing = distanceAmongPanels * 10 || 20;
+
+        suitablePanels = panels.map(panel => {
+            const fittingResult = CalculatorService.getFittingPanelCountOnRoof({
+                panelWidth: panel.dimension.width,
+                panelLength: panel.dimension.length,
+                areaWidth,
+                areaLength,
+                distanceBetweenPanels: panelSpacing
+            });
+            const { count } = fittingResult;
+
+            // лекція стор. 17
+            const totalPVPowerKw = (count * panel.maximum_power_w) / 1000;
+            console.log(`Total PV power (kW): ${totalPVPowerKw}`);
+
+            if (totalPVPowerKw > pv_power) {
+                const cleanPanel = panel.toObject();
+                return {
+                    ...cleanPanel,
+                    ...fittingResult,
+                    max_pv_power_for_area_kW: totalPVPowerKw
+                };
+            }
+
+            return null;
+        }).filter(Boolean);
+
+        if (!suitablePanels || suitablePanels.length === 0) {
+            const optimalParams = {
+                required_power_kW: pv_power
+            };
+
+            return {
+                answer: "No suitable panels found.",
+                pv: {
+                    optimalParams,
+                    requiredElement: "фотопанелі"
+                }
+            };
+        }
+
+    } else {
+        // розрахунок панелей на землі (пласкому даху)
+        // szymanski page 142-144
+        // // data for formula from szymanski
+        const latitude = 48;
+        const betaRad = optimalPVAngle * Math.PI / 180;
+        const a = 90 - latitude - 23.45;
+        const aRad = a * Math.PI / 180;
+
+        suitablePanels = panels.map(panel => {
+            const fittingResult = CalculatorService.getFittingPanelCountOnGround({
+                panelWidth: panel.dimension.width,
+                panelLength: panel.dimension.length,
+                areaWidth: width * 1000,
+                areaLength: length * 1000,
+                distanceAmongPanels: distanceAmongPanels * 10,
+                beta: betaRad,
+                a: aRad
+            });
+            console.log(fittingResult)
+            const { orientation, rows, cols, count, distance_between_rows } = fittingResult;
+
+            // лекція стор. 17
+            const totalPVPowerKw = (count * panel.maximum_power_w) / 1000;
+            console.log(`Total PV power (kW): ${totalPVPowerKw}`);
+
+            if (totalPVPowerKw > pv_power) {
+                const cleanPanel = panel.toObject();
+                return {
+                    ...cleanPanel,
+                    ...fittingResult,
+                    max_pv_power_for_area_kW: totalPVPowerKw
+                };
+            }
+
+            return null;
+        }).filter(Boolean);
+
+        if (!suitablePanels || suitablePanels.length === 0) {
+            const optimalParams = {
+                required_power_kW: pv_power
+            };
+
+            return {
+                answer: "No suitable panels found.",
+                pv: {
+                    optimalParams,
+                    requiredElement: "фотопанелі"
+                }
+            };
+        }
+
+    }
 
 
-    // 3.2 find suitable panels to inverters
-    // const { value: translatedPanel, history } =
-    //     LogicalMachineService.applyRule("translation", LogicalMachineService.buildFacts({ name: pvElements[1] }));
-    // const panels = await DBService.findElementByName(translatedPanel);
-    // console.log(panels.length);
 
-    // width
-    // length
-    // const voltageMargin = 0.9;
+    // 3.3 find suitable panels to inverters
+    const suitableInvertersWithPanels = suitableInverters.map(inverter => {
 
-    // suitableInverters.forEach(inverter => {
-    //     const maxVoc = inverter.max_input_voltage_v * voltageMargin;
-    //     const mpptMin = inverter.mppt_voltage_range_v.min;
-    //     const mpptMax = inverter.mppt_voltage_range_v.max;
-    //     const maxCurrent = inverter.max_mppt_current_a;
+        const compatiblePanels = suitablePanels.map(panel => {
+            const pannelConnectionType = CalculatorService.determinePanelConnectionType(panel, inverter);
+            return {
+                ...panel,
+                ...pannelConnectionType
+            };
+        }).filter(Boolean);
 
-    //     panels.forEach(panel => {
-    //         const Voc = panel.open_circuit_voltage_v;
-    //         const Vmp = panel.voltage_at_maximum_power_v;
-    //         const Imp = panel.current_at_maximum_power_a;
+        if (!compatiblePanels.length) return {
+            answer: "No suitable pannels to invertors found.",
+            pv: {
+                requiredElement: "фотопанелі"
+            }
+        };
 
-    //     })
+        return { inverter, compatiblePanels };
+    }).filter(Boolean);
 
-    //     return 0;
-    // })
-    // console.log("Result:", suitableInvertersWithPanels);
-
+    console.log("Result: ", suitableInvertersWithPanels.map(item => item.compatiblePanels));
 
 
     return { answer: answerFromES, pv: { optimalPVAngle, optimalPVOrientation, optimalPVPlace, yearRegionInsolation, monthRegionInsolationRange } };
 
     // генерувати кілька варіантів по фінансам (дешево, середньо, дорого)
-    // якщо площі замало для очікуваної потужності - сказати про це і запропонувати максимальний варіант
     // надсилати графік виробленої е-енергії за рік (прогноз), прогноз окупності
 }
 

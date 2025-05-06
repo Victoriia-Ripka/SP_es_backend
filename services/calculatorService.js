@@ -1,0 +1,159 @@
+function getFittingPanelCountOnRoof({ panelWidth, panelLength, areaWidth, areaLength, distanceBetweenPanels = 20
+}) {
+    function countPanelsInOrientation(pW, pL) {
+        const totalPanelWidth = pW + distanceBetweenPanels;
+        const totalPanelLength = pL + distanceBetweenPanels;
+
+        const cols = Math.floor(areaWidth / totalPanelWidth);
+        const rows = Math.floor(areaLength / totalPanelLength) ? Math.floor(areaLength / totalPanelLength) : 1;
+
+        return {
+            count: cols * rows,
+            rows,
+            cols
+        };
+    }
+
+    const horizontal = countPanelsInOrientation(panelWidth, panelLength);
+    const vertical = countPanelsInOrientation(panelLength, panelWidth);
+
+    if (horizontal.count >= vertical.count) {
+        return {
+            orientation: "horizontal",
+            ...horizontal
+        };
+    } else {
+        return {
+            orientation: "vertical",
+            ...vertical
+        };
+    }
+}
+
+function getFittingPanelCountOnGround({ panelWidth, panelLength, areaWidth, areaLength, distanceAmongPanels = 2, beta, a
+}) {
+    const d = 2 * panelLength + distanceAmongPanels;
+    const distanceAmongRows = (d * Math.sin(beta)) / Math.sin(a);
+
+    // варіант з вертикальною орієнтацією (довга сторона по довжині)
+    const rowsVertical = Math.floor(areaLength / distanceAmongRows) ? Math.floor(areaLength / distanceAmongRows) : 1;
+    const colsVertical = Math.floor(areaWidth / panelWidth);
+    const countVertical = rowsVertical * colsVertical;
+
+    // варіант з горизонтальною орієнтацією (широка сторона по довжині)
+    const rowsHorizontal = Math.floor(areaLength / distanceAmongRows) ? Math.floor(areaLength / distanceAmongRows) : 1;
+    const colsHorizontal = Math.floor(areaWidth / panelLength);
+    const countHorizontal = rowsHorizontal * colsHorizontal;
+
+    if (countHorizontal > countVertical) {
+        return {
+            orientation: "horizontal",
+            rows: rowsHorizontal,
+            cols: colsHorizontal,
+            count: countHorizontal,
+            distance_between_rows: parseFloat((distanceAmongRows/1000).toFixed(2))
+        };
+    } else {
+        return {
+            orientation: "vertical",
+            rows: rowsVertical,
+            cols: colsVertical,
+            count: countVertical,
+            distance_between_rows: parseFloat((distanceAmongRows/1000).toFixed(2))
+        };
+    }
+}
+
+
+function determinePanelConnectionType(panel, inverter) {
+    const Voc = panel.open_circuit_voltage_v;
+    const Vmp = panel.voltage_at_maximum_power_v;
+    const Imp = panel.current_at_maximum_power_a;
+    const Pmp = panel.maximum_power_w;
+
+    const maxInputVoltage = inverter.max_input_voltage_v;
+    const mpptMin = inverter.mppt_voltage_range_v?.min ?? inverter.input_voltage_range_dc_v.min;
+    const mpptMax = inverter.mppt_voltage_range_v?.max ?? inverter.input_voltage_range_dc_v.max;
+    const maxCurrent = Array.isArray(inverter.input_current_a)
+        ? Math.max(...inverter.input_current_a)
+        : inverter.input_current_a;
+
+    const panelCount = panel.count;
+
+    const results = [];
+
+    // ========== ЗМІШАНЕ ПІДКЛЮЧЕННЯ (N x M) ==========
+    for (let seriesCount = 1; seriesCount <= panelCount; seriesCount++) {
+        const totalVoc = seriesCount * Voc;
+        const totalVmp = seriesCount * Vmp;
+
+        if (totalVoc > maxInputVoltage || totalVmp < mpptMin || totalVmp > mpptMax) {
+            continue; // пропустити цю конфігурацію
+        }
+
+        const maxParallelStrings = Math.floor(maxCurrent / Imp);
+        const maxStringsByPanels = Math.floor(panelCount / seriesCount);
+        const parallelStrings = Math.min(maxParallelStrings, maxStringsByPanels);
+
+        if (parallelStrings < 1) continue;
+
+        const totalPanels = seriesCount * parallelStrings;
+        const totalPowerKw = (Pmp * totalPanels) / 1000;
+        const totalCurrent = Imp * parallelStrings;
+
+        results.push({
+            panel_type_connection: 'змішане',
+            seriesCount,
+            parallelStrings,
+            number_panels_in_system: totalPanels,
+            max_pv_power_for_params_kW: parseFloat(totalPowerKw.toFixed(3)),
+            voltage: totalVmp,
+            current: totalCurrent
+        });
+    }
+
+    // ========== ПОСЛІДОВНЕ ==========
+    const maxSeriesVoc = Math.floor(maxInputVoltage / Voc);
+    const maxSeriesVmp = Math.floor(mpptMax / Vmp);
+    const minSeriesVmp = Math.ceil(mpptMin / Vmp);
+    const bestSeriesCount = Math.min(maxSeriesVoc, maxSeriesVmp, panelCount);
+
+    if (bestSeriesCount >= minSeriesVmp) {
+        const seriesPowerKw = (Pmp * bestSeriesCount) / 1000;
+
+        results.push({
+            panel_type_connection: 'послідовне',
+            number_panels_in_system: bestSeriesCount,
+            max_pv_power_for_params_kW: parseFloat(seriesPowerKw.toFixed(3)),
+            voltage: bestSeriesCount * Vmp,
+            current: Imp
+        });
+    }
+
+    // ========== ПАРАЛЕЛЬНЕ ==========
+    const maxParallelCount = Math.floor(maxCurrent / Imp);
+    const parallelCount = Math.min(maxParallelCount, panelCount);
+
+    if (parallelCount > 0) {
+        const parallelPowerKw = (Pmp * parallelCount) / 1000;
+
+        results.push({
+            panel_type_connection: 'паралельне',
+            number_panels_in_system: parallelCount,
+            max_pv_power_for_params_kW: parseFloat(parallelPowerKw.toFixed(3)),
+            voltage: Vmp,
+            current: Imp * parallelCount
+        });
+    }
+
+    // ========== ВИБІР НАЙКРАЩОГО ==========
+    const best = results.sort((a, b) => b.max_pv_power_for_params_kW - a.max_pv_power_for_params_kW)[0];
+
+    return best || null;
+}
+
+export const CalculatorService = {
+    getFittingPanelCountOnRoof,
+    getFittingPanelCountOnGround,
+    determinePanelConnectionType
+}

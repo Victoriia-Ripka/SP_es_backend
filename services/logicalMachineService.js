@@ -13,7 +13,7 @@ export class LogicalMachineService {
         this.lmOptions = {
             toSaveEvents: true,
             toExplainMore: false,
-            passCountMax: 16,
+            passCountMax: 64,
         };
     }
 
