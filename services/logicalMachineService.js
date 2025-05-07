@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { LogicalMachine } from '../LogicalMachine/LogicalMachine.js'
+import { LogicalMachine } from '../logicalMachine/LogicalMachine.js'
 
 export class LogicalMachineService {
     constructor() {
