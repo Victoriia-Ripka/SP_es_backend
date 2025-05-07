@@ -18,9 +18,12 @@ const started_pv_user_data = {
     data_designing_pv: {
         pv_power: 0,
         pv_instalation_place: '',
-        pv_area: 0,
-        roof_tilt: 0,
-        roof_orientation: 0,
+        pv_area: {
+            width: 0,
+            length: 0
+        },
+        roof_tilt: -1,
+        roof_orientation: -1,
         pv_type: '',
         pv_location: ''
     },
