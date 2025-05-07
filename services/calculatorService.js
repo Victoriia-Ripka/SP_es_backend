@@ -19,12 +19,12 @@ function getFittingPanelCountOnRoof({ panelWidth, panelLength, areaWidth, areaLe
 
     if (horizontal.count >= vertical.count) {
         return {
-            orientation: "horizontal",
+            orientation: "горизонтальна",
             ...horizontal
         };
     } else {
         return {
-            orientation: "vertical",
+            orientation: "вертикальна",
             ...vertical
         };
     }
@@ -47,7 +47,7 @@ function getFittingPanelCountOnGround({ panelWidth, panelLength, areaWidth, area
 
     if (countHorizontal > countVertical) {
         return {
-            orientation: "horizontal",
+            orientation: "горизонтальна",
             rows: rowsHorizontal,
             cols: colsHorizontal,
             count: countHorizontal,
@@ -55,7 +55,7 @@ function getFittingPanelCountOnGround({ panelWidth, panelLength, areaWidth, area
         };
     } else {
         return {
-            orientation: "vertical",
+            orientation: "вертикальна",
             rows: rowsVertical,
             cols: colsVertical,
             count: countVertical,
@@ -106,8 +106,8 @@ function determinePanelConnectionType(panel, inverter) {
             parallelStrings,
             number_panels_in_system: totalPanels,
             max_pv_power_for_params_kW: parseFloat(totalPowerKw.toFixed(3)),
-            voltage: totalVmp,
-            current: totalCurrent
+            voltage: totalVmp.toFixed(2),
+            current: totalCurrent.toFixed(2)
         });
     }
 
@@ -124,8 +124,8 @@ function determinePanelConnectionType(panel, inverter) {
             panel_type_connection: 'послідовне',
             number_panels_in_system: bestSeriesCount,
             max_pv_power_for_params_kW: parseFloat(seriesPowerKw.toFixed(3)),
-            voltage: bestSeriesCount * Vmp,
-            current: Imp
+            voltage: (bestSeriesCount * Vmp).toFixed(2),
+            current: Imp.toFixed(2)
         });
     }
 
@@ -140,8 +140,8 @@ function determinePanelConnectionType(panel, inverter) {
             panel_type_connection: 'паралельне',
             number_panels_in_system: parallelCount,
             max_pv_power_for_params_kW: parseFloat(parallelPowerKw.toFixed(3)),
-            voltage: Vmp,
-            current: Imp * parallelCount
+            voltage: Vmp.toFixed(2),
+            current: (Imp * parallelCount).toFixed(2)
         });
     }
 
@@ -152,8 +152,8 @@ function determinePanelConnectionType(panel, inverter) {
 }
 
 function getSuitableBatteryChargeCount({ inverter, charges }) {
-    const minBatteryPower = inverter.nominal_power_dc_kW * 0.5;
-    const maxBatteryPower = inverter.nominal_power_dc_kW * 1.7;
+    const minBatteryPower = inverter.nominal_power_dc_kW * 1.5;
+    const maxBatteryPower = inverter.nominal_power_dc_kW * 2.5;
     const requiredVoltage = inverter.battery_voltage_v;
     const maxChargeCurrent = inverter.max_charge_current_a;
 
@@ -164,24 +164,26 @@ function getSuitableBatteryChargeCount({ inverter, charges }) {
 
             if (!voltageInRange && !nominalVoltageMatch) return null;
 
-            const singleChargePower = charge.battery_block_capacity_kWh || charge.battery_capacity_kWh;
+            const chargeCapacity = charge.battery_capacity_kWh;
 
             // determine how many blocks needed to reach at least minBatteryPower
-            const minCount = Math.ceil(minBatteryPower / singleChargePower);
-            const maxCount = Math.floor(maxBatteryPower / singleChargePower);
+            const minCount = Math.ceil(minBatteryPower / chargeCapacity);
+            const maxCount = Math.floor(maxBatteryPower / chargeCapacity);
 
             if (minCount <= 0 || maxCount <= 0) return null;
 
             // estimate total current draw at required voltage (approx)
-            const powerForCurrentCheck = minCount * singleChargePower * 1000; // convert kWh to W
+            const powerForCurrentCheck = minCount * chargeCapacity * 1000; // convert kWh to W
             const estimatedCurrent = powerForCurrentCheck / requiredVoltage;
 
             if (estimatedCurrent > maxChargeCurrent) return null;
 
+            const cleanCharge = charge.toObject();
+
             return {
-                ...charge,
+                ...cleanCharge,
                 charge_count: minCount,
-                total_charge_capacity_kWh: minCount * singleChargePower,
+                total_charge_capacity_kWh: (minCount * chargeCapacity).toFixed(2),
             };
         })
         .filter(Boolean);
@@ -213,10 +215,12 @@ const generateCombinations = (suitableElements) => {
                 suitableCharges.forEach(charge => {
                     const { charge_count, price: chargePrice } = charge;
 
+                    const total_price = (Number(baseCombination.total_price) + charge_count * chargePrice).toFixed(2)
+
                     combinations.push({
                         ...baseCombination,
                         charge,
-                        total_price: (baseCombination.total_price + charge_count * chargePrice).toFixed(2)
+                        total_price
                     });
                 });
             } else {

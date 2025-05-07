@@ -131,6 +131,7 @@ async function createPVdesign(pvData) {
             $gte: pv_power * 0.8,
             $lte: pv_power * 2,
         },
+        available: true
     }
     const suitableInverters = await dbService.findElementByName(translatedInvertor, invertersParams);
 
@@ -148,7 +149,7 @@ async function createPVdesign(pvData) {
 
     // 3.2 find suitable panels to pv_power
     const { value: translatedPanel, history } = lmService.applyRule("translation", lmService.buildFacts({ name: pvElements[1] }));
-    const panels = await dbService.findElementByName(translatedPanel, { model: "LR5-54HTH-435M" });
+    const panels = await dbService.findElementByName(translatedPanel, { model: "LR5-54HTH-435M", available: true });
 
     const voltageMargin = 0.9;
     const systemEfficiency = 0.8
@@ -189,9 +190,9 @@ async function createPVdesign(pvData) {
 
         if (!suitablePanels || suitablePanels.length === 0) {
             const optimalParams = {
-                required_power_kW: pv_power,
-                area_width: width,
-                area_length: length
+                required_power_kW: pv_power.toFixed(2),
+                area_width: width.toFixed(2),
+                area_length: length.toFixed(2)
             };
 
             return {
@@ -238,9 +239,9 @@ async function createPVdesign(pvData) {
 
         if (!suitablePanels || suitablePanels.length === 0) {
             const optimalParams = {
-                required_power_kW: pv_power,
-                area_width: width,
-                area_length: length
+                required_power_kW: pv_power.toFixed(2),
+                area_width: width.toFixed(2),
+                area_length: length.toFixed(2)
             };
 
             return {
@@ -283,7 +284,7 @@ async function createPVdesign(pvData) {
 
     // 4 find charge if it's needed to PV type 
     if (pvElements[2]) {
-        const charges = await dbService.findElementByName(translatedCharge);
+        const charges = await dbService.findElementByName(translatedCharge, { available: true });
 
         suitableElements = suitableInvertersWithPanels.map(item => {
             const { inverter } = item;
@@ -291,13 +292,17 @@ async function createPVdesign(pvData) {
 
             return {
                 ...item,
-                suitableCharges: suitableCharges || 'Не знайдено відповідних АКБ'
+                suitableCharges
             };
         });
     }
 
     // 5 create combination with all elements
-    const combinations = CalculatorService.generateCombinations(suitableElements);
+    let combinations = CalculatorService.generateCombinations(suitableElements);
+
+    if (pv_type === 'гібридна' || pv_type === 'автономна') {
+        combinations = combinations.filter(element => element.charge);
+    }
 
     // 5.1 Сортуємо за ціною
     const sortedCombinations = combinations.sort((a, b) => a.total_price - b.total_price);
@@ -307,7 +312,7 @@ async function createPVdesign(pvData) {
         const middleIndex = Math.floor(sortedCombinations.length / 2);
         threeOptions = [sortedCombinations[0], sortedCombinations[middleIndex], sortedCombinations[sortedCombinations.length - 1]];
     } else {
-        threeOptions = {...sortedCombinations}
+        threeOptions = [...sortedCombinations]
     }
 
     return { answer: answerFromES, pv: { pv_type, optimalPVPlace, optimalPVOrientation, optimalPVAngle, pvElements, threeOptions } };
