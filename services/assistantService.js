@@ -86,8 +86,12 @@ async function createPVdesign(pvData) {
     answerFromES.push(installationPlaceHistory);
 
     if (optimalPVPlace === 'земля' && pv_instalation_place === 'дах') {
-        const errorAnswer = [installationPlaceHistory, 'Вкажіть довжину і ширину ділянки під фотопанелі на землі.']
-        return { answer: errorAnswer }
+        const errorAnswer = [installationPlaceHistory, ['Вкажіть довжину і ширину ділянки під фотопанелі на землі.']]
+        return {
+            answer: errorAnswer, pv: {
+                pv_type, optimalPVPlace: null, optimalPVOrientation: null, optimalPVAngle: null, pvElements, threeOptions: []
+            }
+        }
     }
 
     // 2.2.1
@@ -95,7 +99,12 @@ async function createPVdesign(pvData) {
     const orientationFacts = lmService.buildFacts({ place: pv_instalation_place, roof_orientation });
     const { value: optimalPVOrientation, history: orientationHistory } = lmService.applyRule("choosing_optimal_orientation", orientationFacts, "roof_orientation", roof_orientation);
     if (!optimalPVOrientation) {
-        return { answer: orientationHistory[0] };
+        return {
+            answer: orientationHistory,
+            pv: {
+                pv_type, optimalPVPlace, optimalPVOrientation: null, optimalPVAngle: null, pvElements, threeOptions: []
+            }
+        };
     }
     answerFromES.push(orientationHistory);
 
@@ -128,15 +137,12 @@ async function createPVdesign(pvData) {
     if (!suitableInverters || suitableInverters.length === 0) {
         const optimalParams = {
             required_power_kW: pv_power,
-            type: invertersParams.type,
+            type: pv_type,
         };
 
         return {
-            answer: "No suitable inverters found.",
-            pv: {
-                optimalParams,
-                requiredElement: "інвертор"
-            }
+            answer: [["У моїй БД не знайдено відповідного інвертора. Змініть параметри, якщо це можливо"], [{ optimalParams }]],
+            pv: { pv_type, optimalPVPlace, optimalPVOrientation, optimalPVAngle, pvElements, threeOptions: [] }
         };
     }
 
@@ -183,15 +189,14 @@ async function createPVdesign(pvData) {
 
         if (!suitablePanels || suitablePanels.length === 0) {
             const optimalParams = {
-                required_power_kW: pv_power
+                required_power_kW: pv_power,
+                area_width: width,
+                area_length: length
             };
 
             return {
-                answer: "No suitable panels found.",
-                pv: {
-                    optimalParams,
-                    requiredElement: "фотопанелі"
-                }
+                answer: [["Не знайдено відповідних фотопанелей до СЕС. Змініть параметри, якщо це можливо"], [optimalParams]],
+                pv: { pv_type, optimalPVPlace, optimalPVOrientation, optimalPVAngle, pvElements, threeOptions: [] }
             };
         }
 
@@ -233,15 +238,14 @@ async function createPVdesign(pvData) {
 
         if (!suitablePanels || suitablePanels.length === 0) {
             const optimalParams = {
-                required_power_kW: pv_power
+                required_power_kW: pv_power,
+                area_width: width,
+                area_length: length
             };
 
             return {
-                answer: "No suitable panels found.",
-                pv: {
-                    optimalParams,
-                    requiredElement: "фотопанелі"
-                }
+                answer: [["Не знайдено відповідних фотопанелей до СЕС. Змініть параметри, якщо це можливо"], [optimalParams]],
+                pv: { pv_type, optimalPVPlace, optimalPVOrientation, optimalPVAngle, pvElements, threeOptions: [] }
             };
         }
 
@@ -258,10 +262,14 @@ async function createPVdesign(pvData) {
             };
         }).filter(Boolean);
 
-        if (!compatiblePanels.length) return {
-            answer: "No suitable pannels to invertors found.",
-            pv: {
-                requiredElement: "фотопанелі"
+        if (!compatiblePanels.length) {
+            const optimalParams = {
+                required_power_kW: pv_power,
+                type: pv_type,
+            };
+            return {
+                answer: [["У моїй БД не знайдено фотопанелей, що підходили б до потрібних інверторів. Змініть параметри, якщо це можливо"], [optimalParams]],
+                pv: { pv_type, optimalPVPlace, optimalPVOrientation, optimalPVAngle, pvElements, threeOptions: [] }
             }
         };
 
@@ -293,8 +301,14 @@ async function createPVdesign(pvData) {
 
     // 5.1 Сортуємо за ціною
     const sortedCombinations = combinations.sort((a, b) => a.total_price - b.total_price);
-    const middleIndex = Math.floor(sortedCombinations.length / 2);
-    const threeOptions = [sortedCombinations[0], sortedCombinations[middleIndex], sortedCombinations[sortedCombinations.length - 1]];
+
+    let threeOptions;
+    if (sortedCombinations.length >= 3) {
+        const middleIndex = Math.floor(sortedCombinations.length / 2);
+        threeOptions = [sortedCombinations[0], sortedCombinations[middleIndex], sortedCombinations[sortedCombinations.length - 1]];
+    } else {
+        threeOptions = {...sortedCombinations}
+    }
 
     return { answer: answerFromES, pv: { pv_type, optimalPVPlace, optimalPVOrientation, optimalPVAngle, pvElements, threeOptions } };
     // yearRegionInsolation, monthRegionInsolationRange
