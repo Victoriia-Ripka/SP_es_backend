@@ -321,9 +321,9 @@ async function createPVdesign(pvData) {
     const threeOptionsWithForecast = threeOptions.map(option => {
         let insolation_forecast = []
         monthRegionInsolationRange.map(monthInsolation => {
-            insolation_forecast.push((Number(option.total_power_kW) * systemEfficiency * monthInsolation * PEC).toFixed(2))
+            insolation_forecast.push(Number((Number(option.total_power_kW) * systemEfficiency * monthInsolation * PEC).toFixed(2)))
         })
-        const year_production = (yearRegionInsolation * (Number(option.total_power_kW)) * systemEfficiency * PEC).toFixed(2)
+        const year_production = Number((yearRegionInsolation * (Number(option.total_power_kW)) * systemEfficiency * PEC).toFixed(2))
 
         return {
             ... option,
