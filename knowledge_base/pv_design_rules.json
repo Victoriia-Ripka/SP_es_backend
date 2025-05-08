@@ -25,6 +25,21 @@
         "factValue": "panels"
     },
     {
+        "condition": "name = 'контролер заряду-розряду'",
+        "factName": "translation",
+        "factValue": "charge_controllers"
+    },
+    {
+        "condition": "name LIKE 'лічильник електроенергії'",
+        "factName": "translation",
+        "factValue": "counters"
+    },
+    {
+        "condition": "name = 'розподільний щит'",
+        "factName": "translation",
+        "factValue": "distribution_boards"
+    },
+    {
         "condition": "name = 'інвертор'",
         "factName": "translation",
         "factValue": "inverters"
@@ -103,5 +118,20 @@
         "factName": "get_needed_distance_among_panels",
         "factValue": 0.02,
         "description": "Між фотопанелями на даху потрібно залишати 2см відстані"
+    },
+    {
+        "condition": "name = 'voltage margin'",
+        "factName": "get_coeff",
+        "factValue": 0.9
+    },
+    {
+        "condition": "name = 'middle latitude'",
+        "factName": "get_coeff",
+        "factValue": 48
+    },
+    {
+        "condition": "name = 'middle PV system efficiency'",
+        "factName": "get_coeff",
+        "factValue": 0.8
     }
 ]
