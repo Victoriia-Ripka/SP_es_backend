@@ -73,7 +73,7 @@ async function createPVdesign(pvData) {
     // 1.1
     const pvTypesData = kbSerice.getKnowledge("СЕС", "види");
     const pvElements = pvTypesData[pv_type]["елементи системи"];
-    // const pvExtraElements = pvTypesData[pv_type]["додаткові елементи системи"];
+    const pvExtraElements = pvTypesData[pv_type]["додаткові елементи системи"];
 
     // 1.2
     const regionInsolationData = insolationFile[pv_location];
@@ -115,7 +115,7 @@ async function createPVdesign(pvData) {
 
     // 2.2.3 PEC calculation
     const PEC = lmService.determinePEC(optimalPVAngle, Math.abs(180 - optimalPVOrientation));
-
+    console.log("PEC: ", PEC);
     console.log(pvElements)
 
     // 3.0.1 translate element type (e.g. 'інвертор' → 'inverters')
@@ -152,7 +152,7 @@ async function createPVdesign(pvData) {
     const panels = await dbService.findElementByName(translatedPanel, { model: "LR5-54HTH-435M", available: true });
 
     const voltageMargin = 0.9;
-    const systemEfficiency = 0.8
+    
     const { value: distanceAmongPanels } = lmService.applyPVDesignRuleToFacts("get_needed_distance_among_panels", [{ name: "panels_place", value: optimalPVPlace }]);
 
     let suitablePanels;
@@ -315,9 +315,43 @@ async function createPVdesign(pvData) {
         threeOptions = [...sortedCombinations]
     }
 
-    return { answer: answerFromES, pv: { pv_type, optimalPVPlace, optimalPVOrientation, optimalPVAngle, pvElements, threeOptions } };
-    // yearRegionInsolation, monthRegionInsolationRange
-    // надсилати графік виробленої е-енергії за рік (прогноз), прогноз окупності
+    const systemEfficiency = 0.8
+
+    // 7 insolation forecast for a year 
+    const threeOptionsWithForecast = threeOptions.map(option => {
+        let insolation_forecast = []
+        monthRegionInsolationRange.map(monthInsolation => {
+            insolation_forecast.push((Number(option.total_power_kW) * systemEfficiency * monthInsolation * PEC).toFixed(2))
+        })
+        const year_production = (yearRegionInsolation * (Number(option.total_power_kW)) * systemEfficiency * PEC).toFixed(2)
+
+        return {
+            ... option,
+            insolation_forecast,
+            year_production
+        }
+    })
+
+    // console.log(pvExtraElements)
+
+    // 6.0.1, 6.02, 6.03 translate 
+    // const translatedExtraElements = [];
+
+    // for (const elementName of pvExtraElements) {
+    //     const facts = lmService.buildFacts({ name: elementName });
+
+    //     const { value: translatedValue, history } = await lmService.applyRule("translation", facts);
+
+    //     translatedExtraElements.push({
+    //         original: elementName,
+    //         translated: translatedValue,
+    //         history
+    //     });
+    // }
+
+    // console.log(translatedExtraElements);
+
+    return { answer: answerFromES, pv: { pv_type, optimalPVPlace, optimalPVOrientation, optimalPVAngle, pvElements, options: threeOptionsWithForecast } };
 }
 
 // TODO: перевизначення наміру після заповнення поля або після відхилення від головного наміру
