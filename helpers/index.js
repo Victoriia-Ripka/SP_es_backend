@@ -2,8 +2,6 @@ import { buildNERPrompt, extractEntitiesFromText } from './nerHelper.js';
 import { extractIntentFromSystemText, extractIntentFromText } from './textcatHelper.js';
 import { processInputWithGPT, getOpenAIResponse } from './openAIHelper.js'
 import { ctrlWrapper } from './CtrlWrapper.js';
-import { handleMongooseError } from './HandleMongooseerror.js';
-import { HttpError } from './HttpError.js';
 
 function verifyNumberOrString(value) {
     const num = parseFloat(value);
@@ -98,7 +96,5 @@ export const Helpers = {
     isNumberAnswer,
     isCorrectMeasureUnits,
     checkIfUserDataChanged,
-    HttpError,
-    ctrlWrapper,
-    handleMongooseError,
+    ctrlWrapper
 };

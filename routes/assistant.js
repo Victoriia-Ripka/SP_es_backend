@@ -1,13 +1,11 @@
 import express from "express";
-import { getAnswer, startCommunication, setPVtype, designPV } from "../controllers/assistantController.js";
+import ctrl from "../controllers/assistantController.js";
 
 const router = express.Router();
 
-
-router.get("/start", startCommunication);
-router.post("/ask", getAnswer);
-router.post("/setPVtype", setPVtype);
-router.post("/designPV", designPV);
-
+router.get("/start", ctrl.startCommunication);
+router.post("/ask", ctrl.getAnswer);
+router.post("/setPVtype", ctrl.setPVtype);
+router.post("/designPV", ctrl.designPV);
 
 export default router;

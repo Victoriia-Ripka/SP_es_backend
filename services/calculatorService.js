@@ -1,11 +1,12 @@
 function getFittingPanelCountOnRoof({ panelWidth, panelLength, areaWidth, areaLength, distanceBetweenPanels = 20
 }) {
+    // допоміжна функція для обрахунків
     function countPanelsInOrientation(pW, pL) {
         const totalPanelWidth = pW + distanceBetweenPanels;
         const totalPanelLength = pL + distanceBetweenPanels;
 
         const cols = Math.floor(areaWidth / totalPanelWidth);
-        const rows = Math.floor(areaLength / totalPanelLength) ? Math.floor(areaLength / totalPanelLength) : 1;
+        const rows = Math.floor(areaLength / totalPanelLength) || 1;
 
         return {
             count: cols * rows,
@@ -32,34 +33,35 @@ function getFittingPanelCountOnRoof({ panelWidth, panelLength, areaWidth, areaLe
 
 function getFittingPanelCountOnGround({ panelWidth, panelLength, areaWidth, areaLength, distanceAmongPanels = 2, beta, a
 }) {
+    // шиманський стр. 144
     const d = 2 * panelLength + distanceAmongPanels;
     const distanceAmongRows = (d * Math.sin(beta)) / Math.sin(a);
 
-    // варіант з вертикальною орієнтацією (довга сторона по довжині)
-    const rowsVertical = Math.floor(areaLength / distanceAmongRows) ? Math.floor(areaLength / distanceAmongRows) : 1;
-    const colsVertical = Math.floor(areaWidth / panelWidth);
-    const countVertical = rowsVertical * colsVertical;
+    // допоміжна функція для обрахунків
+    const countPanelsInOrientation = (pW) => {
+        const rows = Math.floor(areaLength / distanceAmongRows) || 1;
+        const cols = Math.floor(areaWidth / pW);
+        return {
+            count: cols * rows,
+            rows,
+            cols
+        };
+    };
 
-    // варіант з горизонтальною орієнтацією (широка сторона по довжині)
-    const rowsHorizontal = Math.floor(areaLength / distanceAmongRows) ? Math.floor(areaLength / distanceAmongRows) : 1;
-    const colsHorizontal = Math.floor(areaWidth / panelLength);
-    const countHorizontal = rowsHorizontal * colsHorizontal;
+    const vertical = countPanelsInOrientation(panelLength);
+    const horizontal = countPanelsInOrientation(panelLength); // широка сторона – це довга сторона в горизонтальній орієнтації
 
-    if (countHorizontal > countVertical) {
+    if (horizontal.count > vertical.count) {
         return {
             orientation: "горизонтальна",
-            rows: rowsHorizontal,
-            cols: colsHorizontal,
-            count: countHorizontal,
-            distance_between_rows: parseFloat((distanceAmongRows / 1000).toFixed(2))
+            ...horizontal,
+            distance_between_rows: Number(parseFloat((distanceAmongRows / 1000).toFixed(2)))
         };
     } else {
         return {
             orientation: "вертикальна",
-            rows: rowsVertical,
-            cols: colsVertical,
-            count: countVertical,
-            distance_between_rows: parseFloat((distanceAmongRows / 1000).toFixed(2))
+            ...vertical,
+            distance_between_rows: Number(parseFloat((distanceAmongRows / 1000).toFixed(2)))
         };
     }
 }
@@ -86,8 +88,9 @@ function determinePanelConnectionType(panel, inverter) {
         const totalVoc = seriesCount * Voc;
         const totalVmp = seriesCount * Vmp;
 
+        // перевірка на відповідність даному стрінгу панелей до інвертора
         if (totalVoc > maxInputVoltage || totalVmp < mpptMin || totalVmp > mpptMax) {
-            continue; // пропустити цю конфігурацію
+            continue; 
         }
 
         const maxParallelStrings = Math.floor(maxCurrent / Imp);
@@ -166,14 +169,14 @@ function getSuitableBatteryChargeCount({ inverter, charges }) {
 
             const chargeCapacity = charge.battery_capacity_kWh;
 
-            // determine how many blocks needed to reach at least minBatteryPower
+            // визначити, скільки блоків потрібно, щоб досягти принаймні minBatteryPower
             const minCount = Math.ceil(minBatteryPower / chargeCapacity);
             const maxCount = Math.floor(maxBatteryPower / chargeCapacity);
 
             if (minCount <= 0 || maxCount <= 0) return null;
 
-            // estimate total current draw at required voltage (approx)
-            const powerForCurrentCheck = minCount * chargeCapacity * 1000; // convert kWh to W
+            // оцінити загальне споживання струму за необхідної напруги (приблизно)
+            const powerForCurrentCheck = minCount * chargeCapacity * 1000; // конвертація кВт*год у Вт
             const estimatedCurrent = powerForCurrentCheck / requiredVoltage;
 
             if (estimatedCurrent > maxChargeCurrent) return null;
