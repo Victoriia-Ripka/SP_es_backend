@@ -47,7 +47,6 @@ function isCorrectMeasureUnits(nerEntities, correctMeasureUnits) {
     );
 }
 
-
 function createInstruction(pv_user_data, knowledge) {
     const knowledgeJSON = JSON.stringify(knowledge, null, 2);
 
@@ -71,11 +70,11 @@ async function transformStringToNumber(value) {
 function checkIfUserDataChanged(pv_user_data, updated_user_data) {
     const fields = [
         'pv_power',
-        'pv_square',
+        'pv_area',
         'pv_instalation_place',
-        'is_electric_autonomy_important',
-        'is_possible_electricity_grid_connection',
-        'is_exist_money_limit'
+        'roof_tilt',
+        'roof_orientation',
+        'pv_location'
     ];
 
     return fields.some(field => pv_user_data[field] !== updated_user_data[field]);

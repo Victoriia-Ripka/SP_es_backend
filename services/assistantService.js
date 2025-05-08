@@ -169,8 +169,6 @@ async function createPVdesign(pvData) {
     const { value: translatedPanel, history } = lmService.applyRule("translation", lmService.buildFacts({ name: pvElements[1] }));
     const panels = await dbService.findElementByName(translatedPanel, { model: "LR5-54HTH-435M", available: true });
 
-    const { value: voltageMargin } = lmService.applyPVDesignRuleToFacts('get_coeff', [{ name: "name", value: 'voltage margin' }])
-
     const { value: distanceAmongPanels } = lmService.applyPVDesignRuleToFacts("get_needed_distance_among_panels", [{ name: "panels_place", value: optimalPVPlace }]);
 
     let suitablePanels;
@@ -223,7 +221,7 @@ async function createPVdesign(pvData) {
         }
 
     } else {
-        // розрахунок панелей на землі (пласкому даху)
+        // розрахунок панелей на землі/пласкому даху
         // szymanski page 142-144
         // // data for formula from szymanski
         const { value: latitude } = lmService.applyPVDesignRuleToFacts("get_coeff", [{ name: "name", value: 'middle latitude' }]);

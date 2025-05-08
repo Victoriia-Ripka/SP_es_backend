@@ -235,7 +235,6 @@ const generateCombinations = (suitableElements) => {
     return combinations;
 };
 
-
 export const CalculatorService = {
     getFittingPanelCountOnRoof,
     getFittingPanelCountOnGround,
