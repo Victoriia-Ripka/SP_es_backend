@@ -42,6 +42,7 @@ bower_components
 build/Release
 
 /temp-DB
+/knowledge_base/index.txt
 
 # Dependency directories
 /node_modules

@@ -4,9 +4,11 @@ import path from 'path';
 export class KBService {
   constructor() {
     this.paths = {
-      "СЕС": 'knowledge_base/ses.json',
-      "контролер заряду": 'knowledge_base/controllers.json',
-      "фотобатарея": 'knowledge_base/batteries.json'
+      "СЕС": 'knowledge_base/pv.json',
+      "фотопанелі": 'knowledge_base/panels.json',
+      "інвертор": 'knowledge_base/inverters.json',
+      "АКБ": 'knowledge_base/charges.json',
+      "інсоляція": 'knowledge_base/insolation.json'
     };
   }
 
@@ -16,7 +18,7 @@ export class KBService {
 
     if (!relativePath) {
       throw new Error(`Knowledge base not found for field: ${field}`);
-    }
+    } 
 
     const knowledgePath = path.resolve(relativePath);
     const raw = fs.readFileSync(knowledgePath, 'utf-8');
