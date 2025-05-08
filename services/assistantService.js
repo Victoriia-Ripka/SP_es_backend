@@ -42,16 +42,15 @@ const started_pv_user_data = {
 }
 
 function sendFirstMesssage() {
-    const answer = `Привіт. Я є експертною системою для проєктування СЕС. Заповни дані в таблиці збоку для визначення типу СЕС і запроєктування СЕС для тебе. Якщо у тебе будуть якісь питання - звертайся.`;
-    return { answer, pv_user_data: started_pv_user_data };
+    const { value } = lmService.findNeedeText("greeting", [{ name: 'firstMessage', value: 'TRUE' }]);
+    return { answer: value, pv_user_data: started_pv_user_data };
 }
 
 function determinationPVtype(electric_autonomy, electricity_grid_connection, money_limit) {
-    const { type, message: rule } = lmService.determinePVtype(electric_autonomy, electricity_grid_connection, money_limit);
-    return { type, rule };
+    const { type } = lmService.determinePVtype(electric_autonomy, electricity_grid_connection, money_limit);
+    return { type };
 }
 
-// TOFIX: why answers added to each others
 async function createPVdesign(pvData) {
     let answerFromES = [];
 
@@ -70,12 +69,12 @@ async function createPVdesign(pvData) {
         length = 0
     } = pv_area;
 
-    // 1.1
+    // 1.1 get needed PV elements
     const pvTypesData = kbSerice.getKnowledge("СЕС", "види");
     const pvElements = pvTypesData[pv_type]["елементи системи"];
-    const pvExtraElements = pvTypesData[pv_type]["додаткові елементи системи"];
+    // const pvExtraElements = pvTypesData[pv_type]["додаткові елементи системи"];
 
-    // 1.2
+    // 1.2 get insollation data for the region
     const regionInsolationData = insolationFile[pv_location];
     const yearRegionInsolation = regionInsolationData["рік"];
     const monthRegionInsolationRange = regionInsolationData["по місяцям"];
@@ -86,7 +85,10 @@ async function createPVdesign(pvData) {
     answerFromES.push(installationPlaceHistory);
 
     if (optimalPVPlace === 'земля' && pv_instalation_place === 'дах') {
-        const errorAnswer = [installationPlaceHistory, ['Вкажіть довжину і ширину ділянки під фотопанелі на землі.']]
+        // return a message in case user pv_installation_place is unsuitable
+        const { value } = lmService.findNeedeText("changed_pv_installation_place", [{ name: 'place', value: optimalPVPlace }]);
+
+        const errorAnswer = [installationPlaceHistory, [value]];
         return {
             answer: errorAnswer, pv: {
                 pv_type, optimalPVPlace: null, optimalPVOrientation: null, optimalPVAngle: null, pvElements, threeOptions: []
@@ -95,33 +97,46 @@ async function createPVdesign(pvData) {
     }
 
     // 2.2.1
-    // Optimal orientation
-    const orientationFacts = lmService.buildFacts({ place: pv_instalation_place, roof_orientation });
-    const { value: optimalPVOrientation, history: orientationHistory } = lmService.applyRule("choosing_optimal_orientation", orientationFacts, "roof_orientation", roof_orientation);
-    if (!optimalPVOrientation) {
+    // get optimal PV panels orientation
+    if (roof_orientation % 5 !== 0 && roof_orientation >= 0) {
+        // return a message in case panels orientation не кратна 5
+        const { value } = lmService.findNeedeText("not_found", [{ name: 'not_found', value: 'orientation' }]);
+
         return {
-            answer: orientationHistory,
+            answer: [[value]],
             pv: {
                 pv_type, optimalPVPlace, optimalPVOrientation: null, optimalPVAngle: null, pvElements, threeOptions: []
             }
         };
     }
+
+    const orientationFacts = lmService.buildFacts({ place: pv_instalation_place, roof_orientation });
+    const { value: optimalPVOrientation, history: orientationHistory } = lmService.applyRule("choosing_optimal_orientation", orientationFacts, "roof_orientation", roof_orientation);
     answerFromES.push(orientationHistory);
 
-    // 2.2.2 Optimal tilt angle
+    // 2.2.2 get optimal tilt angle
+    if (roof_tilt % 5 !== 0 && roof_tilt >= 0) {
+        // return a message in case tilt angle не кратний 5
+        const { value } = lmService.findNeedeText("not_found", [{ name: 'not_found', value: 'angle' }]);
+
+        return {
+            answer: [[value]],
+            pv: {
+                pv_type, optimalPVPlace, optimalPVOrientation: null, optimalPVAngle: null, pvElements, threeOptions: []
+            }
+        };
+    }
     const angleFacts = lmService.buildFacts({ place: pv_instalation_place, roof_tilt });
     const { value: optimalPVAngle, history: angleHistory } = lmService.applyRule("set_optinal_angle", angleFacts, "roof_tilt", roof_tilt);
     answerFromES.push(angleHistory);
 
-    // 2.2.3 PEC calculation
+    // 2.2.3 calculate PEC 
     const PEC = lmService.determinePEC(optimalPVAngle, Math.abs(180 - optimalPVOrientation));
-    console.log("PEC: ", PEC);
-    console.log(pvElements)
 
-    // 3.0.1 translate element type (e.g. 'інвертор' → 'inverters')
+    // 3.0.1 translate element type ('інвертор' → 'inverters')
     const { value: translatedInvertor, history: answerTranslateInvertorFact } = lmService.applyRule("translation", lmService.buildFacts({ name: pvElements[0] }));
 
-    // 3.0.2 translate PV type (e.g. 'мережева' → 'on-grid')
+    // 3.0.2 translate PV type ('мережева' → 'on-grid')
     const { value: pvTypeEnglish, history: answerPvTypeEnglish } = lmService.applyRule("translation", lmService.buildFacts({ name: pv_type }));
 
     // 3.1 find suitable inverters
@@ -136,13 +151,16 @@ async function createPVdesign(pvData) {
     const suitableInverters = await dbService.findElementByName(translatedInvertor, invertersParams);
 
     if (!suitableInverters || suitableInverters.length === 0) {
+        // return a message in case we don't have suitable inverter 
+        const { value } = lmService.findNeedeText("not_found", [{ name: 'not_found', value: translatedInvertor }]);
+
         const optimalParams = {
             required_power_kW: pv_power,
             type: pv_type,
         };
 
         return {
-            answer: [["У моїй БД не знайдено відповідного інвертора. Змініть параметри, якщо це можливо"], [{ optimalParams }]],
+            answer: [[value], [{ optimalParams }]],
             pv: { pv_type, optimalPVPlace, optimalPVOrientation, optimalPVAngle, pvElements, threeOptions: [] }
         };
     }
@@ -151,8 +169,8 @@ async function createPVdesign(pvData) {
     const { value: translatedPanel, history } = lmService.applyRule("translation", lmService.buildFacts({ name: pvElements[1] }));
     const panels = await dbService.findElementByName(translatedPanel, { model: "LR5-54HTH-435M", available: true });
 
-    const voltageMargin = 0.9;
-    
+    const { value: voltageMargin } = lmService.applyPVDesignRuleToFacts('get_coeff', [{ name: "name", value: 'voltage margin' }])
+
     const { value: distanceAmongPanels } = lmService.applyPVDesignRuleToFacts("get_needed_distance_among_panels", [{ name: "panels_place", value: optimalPVPlace }]);
 
     let suitablePanels;
@@ -189,6 +207,9 @@ async function createPVdesign(pvData) {
         }).filter(Boolean);
 
         if (!suitablePanels || suitablePanels.length === 0) {
+            // return a message in case we don't have suitable panels 
+            const { value } = lmService.findNeedeText("not_found", [{ name: 'not_found', value: translatedPanel }]);
+
             const optimalParams = {
                 required_power_kW: pv_power.toFixed(2),
                 area_width: width.toFixed(2),
@@ -196,7 +217,7 @@ async function createPVdesign(pvData) {
             };
 
             return {
-                answer: [["Не знайдено відповідних фотопанелей до СЕС. Змініть параметри, якщо це можливо"], [optimalParams]],
+                answer: [[value], [optimalParams]],
                 pv: { pv_type, optimalPVPlace, optimalPVOrientation, optimalPVAngle, pvElements, threeOptions: [] }
             };
         }
@@ -205,7 +226,7 @@ async function createPVdesign(pvData) {
         // розрахунок панелей на землі (пласкому даху)
         // szymanski page 142-144
         // // data for formula from szymanski
-        const latitude = 48;
+        const { value: latitude } = lmService.applyPVDesignRuleToFacts("get_coeff", [{ name: "name", value: 'middle latitude' }]);
         const betaRad = optimalPVAngle * Math.PI / 180;
         const a = 90 - latitude - 23.45;
         const aRad = a * Math.PI / 180;
@@ -238,6 +259,9 @@ async function createPVdesign(pvData) {
         }).filter(Boolean);
 
         if (!suitablePanels || suitablePanels.length === 0) {
+            // return a message in case we don't have suitable panels 
+            const { value } = lmService.findNeedeText("not_found", [{ name: 'not_found', value: translatedPanel }]);
+
             const optimalParams = {
                 required_power_kW: pv_power.toFixed(2),
                 area_width: width.toFixed(2),
@@ -245,7 +269,7 @@ async function createPVdesign(pvData) {
             };
 
             return {
-                answer: [["Не знайдено відповідних фотопанелей до СЕС. Змініть параметри, якщо це можливо"], [optimalParams]],
+                answer: [[value], [optimalParams]],
                 pv: { pv_type, optimalPVPlace, optimalPVOrientation, optimalPVAngle, pvElements, threeOptions: [] }
             };
         }
@@ -264,12 +288,16 @@ async function createPVdesign(pvData) {
         }).filter(Boolean);
 
         if (!compatiblePanels.length) {
+            // return a message in case we don't have compatible panels for inverter
+            const { value } = lmService.findNeedeText("not_found", [{ name: 'not_found', value: 'panels for inverter' }]);
+
             const optimalParams = {
                 required_power_kW: pv_power,
                 type: pv_type,
             };
+
             return {
-                answer: [["У моїй БД не знайдено фотопанелей, що підходили б до потрібних інверторів. Змініть параметри, якщо це можливо"], [optimalParams]],
+                answer: [[value], [optimalParams]],
                 pv: { pv_type, optimalPVPlace, optimalPVOrientation, optimalPVAngle, pvElements, threeOptions: [] }
             }
         };
@@ -277,13 +305,14 @@ async function createPVdesign(pvData) {
         return { inverter, compatiblePanels };
     }).filter(Boolean);
 
-    // 4.0.1 translate element type
-    const { value: translatedCharge, history: answerTranslateChargeFact } = lmService.applyRule("translation", lmService.buildFacts({ name: pvElements[2] }));
 
-    let suitableElements = [...suitableInvertersWithPanels]
+    let suitableElements = [...suitableInvertersWithPanels];
 
     // 4 find charge if it's needed to PV type 
     if (pvElements[2]) {
+        // 4.0.1 translate element type
+        const { value: translatedCharge, history: answerTranslateChargeFact } = lmService.applyRule("translation", lmService.buildFacts({ name: pvElements[2] }));
+
         const charges = await dbService.findElementByName(translatedCharge, { available: true });
 
         suitableElements = suitableInvertersWithPanels.map(item => {
@@ -297,14 +326,14 @@ async function createPVdesign(pvData) {
         });
     }
 
-    // 5 create combination with all elements
+    // 6 create combination with all elements
     let combinations = CalculatorService.generateCombinations(suitableElements);
 
     if (pv_type === 'гібридна' || pv_type === 'автономна') {
         combinations = combinations.filter(element => element.charge);
     }
 
-    // 5.1 Сортуємо за ціною
+    // 6.1 Сортуємо за ціною
     const sortedCombinations = combinations.sort((a, b) => a.total_price - b.total_price);
 
     let threeOptions;
@@ -312,29 +341,29 @@ async function createPVdesign(pvData) {
         const middleIndex = Math.floor(sortedCombinations.length / 2);
         threeOptions = [sortedCombinations[0], sortedCombinations[middleIndex], sortedCombinations[sortedCombinations.length - 1]];
     } else {
-        threeOptions = [...sortedCombinations]
+        threeOptions = [...sortedCombinations];
     }
 
-    const systemEfficiency = 0.8
+    // 4 insolation forecast for a year 
+    const { value: systemEfficiency } = lmService.applyPVDesignRuleToFacts('get_coeff', [{ name: "name", value: 'middle PV system efficiency' }]);
 
-    // 7 insolation forecast for a year 
     const threeOptionsWithForecast = threeOptions.map(option => {
-        let insolation_forecast = []
+        let insolation_forecast = [];
         monthRegionInsolationRange.map(monthInsolation => {
-            insolation_forecast.push(Number((Number(option.total_power_kW) * systemEfficiency * monthInsolation * PEC).toFixed(2)))
+            insolation_forecast.push(Number((Number(option.total_power_kW) * systemEfficiency * monthInsolation * PEC).toFixed(2)));
         })
-        const year_production = Number((yearRegionInsolation * (Number(option.total_power_kW)) * systemEfficiency * PEC).toFixed(2))
+        const year_production = Number((yearRegionInsolation * (Number(option.total_power_kW)) * systemEfficiency * PEC).toFixed(2));
 
         return {
-            ... option,
+            ...option,
             insolation_forecast,
             year_production
-        }
-    })
+        };
+    });
 
     // console.log(pvExtraElements)
 
-    // 6.0.1, 6.02, 6.03 translate 
+    // 7.0.1, 7.02, 7.03 translate 
     // const translatedExtraElements = [];
 
     // for (const elementName of pvExtraElements) {
@@ -350,6 +379,12 @@ async function createPVdesign(pvData) {
     // }
 
     // console.log(translatedExtraElements);
+
+    if (threeOptionsWithForecast.length === 0) {
+        // add a message that we don't have suitable options for user
+        const { value } = lmService.findNeedeText("no_options", [{ name: 'options', value: 'empty' }]);
+        answerFromES.push([value]);
+    }
 
     return { answer: answerFromES, pv: { pv_type, optimalPVPlace, optimalPVOrientation, optimalPVAngle, pvElements, options: threeOptionsWithForecast } };
 }

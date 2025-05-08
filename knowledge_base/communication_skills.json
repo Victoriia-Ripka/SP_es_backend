@@ -1,0 +1,42 @@
+[
+    {
+        "condition": "firstMessage = TRUE",
+        "factName": "greeting",
+        "factValue": "Привіт. Я є експертною системою для проєктування СЕС. Заповни дані в таблиці збоку для визначення типу СЕС і запроєктування СЕС для тебе. Якщо у тебе будуть якісь питання - звертайся. "
+    },
+    {
+        "condition": "place = 'земля'",
+        "factName": "changed_pv_installation_place",
+        "factValue": "Вкажіть довжину і ширину ділянки під фотопанелі на землі. "
+    },
+    {
+        "condition": "not_found = 'inverters'",
+        "factName": "not_found",
+        "factValue": "У моїй БД не знайдено відповідного інвертора. Змініть параметри, якщо це можливо. "
+    },
+    {
+        "condition": "not_found = 'panels'",
+        "factName": "not_found",
+        "factValue": "Не знайдено відповідних фотопанелей до СЕС. Змініть параметри, якщо це можливо. "
+    },
+    {
+        "condition": "not_found = 'panels for inverter'",
+        "factName": "not_found",
+        "factValue": "У моїй БД не знайдено фотопанелей, що підходили б до потрібних інверторів. Змініть параметри, якщо це можливо. "
+    },
+    {
+        "condition": "not_found = 'angle'",
+        "factName": "not_found",
+        "factValue": "Подайте, будь ласка, кут, що є кратний 5-и."
+    },
+    {
+        "condition": "not_found = 'orientation'",
+        "factName": "not_found",
+        "factValue": "Подайте, будь ласка, кут орієнтації, що є кратний 5-и (0 - Пн, 90 - Сх, 180 - Пд, 270 - Зх). "
+    },
+    {
+        "condition": "options = 'empty'",
+        "factName": "no_options",
+        "factValue": "На жаль, у нас немає варіантів, щоб вам запропонувати. "
+    }
+]

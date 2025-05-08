@@ -9,7 +9,7 @@ export class LogicalMachineService {
         this.pvTypeRules = JSON.parse(fs.readFileSync(path.resolve('./knowledge_base/pv_type_rules.json'), 'utf8'));
         this.pvDesignRules = JSON.parse(fs.readFileSync(path.resolve('./knowledge_base/pv_design_rules.json'), 'utf8'));
         this.pvPECRules = JSON.parse(fs.readFileSync(path.resolve('./knowledge_base/pec_rules.json'), 'utf8'));
-
+        this.communicationRules = JSON.parse(fs.readFileSync(path.resolve('./knowledge_base/communication_skills.json'), 'utf8'));
         this.lmOptions = {
             toSaveEvents: true,
             toExplainMore: false,
@@ -17,9 +17,6 @@ export class LogicalMachineService {
         };
     }
 
-
-    // TOFIX: при надсиланні обʼєкта з різними даними з ЕС видається той самий результат ???
-    // TODO: test
     determinePVtype(electric_autonomy, electricity_grid_connection, money_limit) {
         this.lm = new LogicalMachine(this.lmOptions);
         this.lm.rulesImport(this.pvTypeRules, this.isTrigger);
@@ -35,10 +32,10 @@ export class LogicalMachineService {
 
         if (!res) {
             console.error(`Fact '${ruleName}' not found`);
-            return { value: null, history: [] };
+            return { type: null };
         }
 
-        return { type: res.value, message: res.history };
+        return { type: res.value };
     }
 
     determinePEC(angle, orientation) {
@@ -59,6 +56,21 @@ export class LogicalMachineService {
         }
 
         return res.value;
+    }
+
+    findNeedeText(ruleName, facts) {
+        this.lm = new LogicalMachine(this.lmOptions);
+        this.lm.rulesImport(this.communicationRules, this.isTrigger);
+        this.lm.factsImport(facts, this.isTrigger);
+
+        const res = this.lm.factGet(ruleName);
+
+        if (!res) {
+            console.error(`Fact '${ruleName}' not found`);
+            return { value: null };
+        }
+
+        return { value: res.value };
     }
 
     applyPVDesignRuleToFacts(ruleName, facts) {
