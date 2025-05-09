@@ -22,7 +22,8 @@ const allowedOrigins = ['https://victoriia-ripka.github.io/', 'https://victoriia
 const corsOptions = {
   origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }
 
 app.use(cors(corsOptions));
