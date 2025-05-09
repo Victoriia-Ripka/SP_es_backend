@@ -393,11 +393,9 @@ async function processUserInput(userInput, pv_user_data) {
         answer = "На жаль, не вдалося знайти інформацію за вашим запитом. Запитайте більш прецизійно. ";
     }
 
-    // pv_user_data.cache.push({ field, detail });
-
     return {
         answer,
-        updated_user_data: {...pv_user_data, cache: [...nerEntities]}
+        updated_user_data: { ...pv_user_data, cache: [...pv_user_data.cache, [...nerEntities]] }
     };
 }
 

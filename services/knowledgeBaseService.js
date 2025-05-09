@@ -22,9 +22,12 @@ export class KBService {
   getKnowledge(nerEntities, cache) {
     let field = Helpers.entityHelper.identifyMainField(nerEntities); // "фотопанелі", "СЕС"
 
-    // console.log(cache)
+    // try to find field in cache
     if (!field) {
-      // get field from cache
+      for (const pastEntities of cache) {
+        field = Helpers.entityHelper.identifyMainField(pastEntities);
+        if (field) break;
+      }
 
       if (!field) throw new Error(`Не визначено поля знань`);
     }
@@ -36,7 +39,7 @@ export class KBService {
     const details = Helpers.entityHelper.identifyDetailFromEntities(nerEntities, kb); //"ефективність", "типи"
     console.log("[INFO] details ", details)
 
-    if (!details) {
+    if (details.length === 0) {
       return `${kb?.назва || field}: ${kb?.опис?.join(', ') || 'немає опису.'}`;
     }
 
@@ -58,72 +61,48 @@ export class KBService {
     return detailInfoJSON;
   }
 
-  // тільки одний можливий "нюанс"
-  // findDetailRecursively(obj, detail) {
-  //   if (typeof obj !== 'object' || obj === null) return null;
-
-  //   for (const key in obj) {
-  //     // console.log("[INFO]", key, detail, key.trim().toLowerCase() === detail.trim().toLowerCase())
-  //     if (key.trim().toLowerCase() === detail.trim().toLowerCase()) {
-  //       const value = obj[key];
-
-  //       console.log(value)
-
-  //       // Якщо знайдений ключ містить опис — повертаємо опис
-  //       if (typeof value === 'object' && value['опис']) {
-  //         return value['опис'];
-  //       }
-
-  //       // Якщо це просто текст/масив — повертаємо значення
-  //       if (typeof value === 'string' || Array.isArray(value)) {
-  //         return value;
-  //       }
-  //     }
-
-  //     // Рекурсивно проходимо вкладені об'єкти
-  //     const nested = this.findDetailRecursively(obj[key], detail);
-  //     if (nested !== null) return nested;
-  //   }
-
-  //   return null;
-  // }
-
-  findDetailRecursively(obj, details) {
+  findDetailRecursively(obj, details, index = 0) {
     if (!Array.isArray(details) || details.length === 0 || typeof obj !== 'object' || obj === null) {
       return null;
     }
 
-    let current = obj;
+    const lowerDetails = details.map(d => d.trim().toLowerCase());
 
-    for (const detail of details) {
-      let found = false;
+    for (const key of Object.keys(obj)) {
+      const normalizedKey = key.trim().toLowerCase();
 
-      for (const key of Object.keys(current)) {
-        if (key.trim().toLowerCase() === detail.trim().toLowerCase()) {
-          current = current[key];
-          found = true;
-          break;
+      if (lowerDetails.includes(normalizedKey)) {
+        const value = obj[key];
+
+        // Видаляємо знайдене значення з копії details
+        const nextDetails = lowerDetails.filter(d => d !== normalizedKey);
+
+        if (Array.isArray(value)) {
+          return value;
         }
-      }
 
-      if (!found) {
-        // Try going deeper into nested objects even if key doesn't match at this level
-        for (const key of Object.keys(current)) {
-          if (typeof current[key] === 'object') {
-            const result = this.findDetailRecursively(current[key], [detail, ...details.slice(details.indexOf(detail) + 1)]);
-            if (result !== null) return result;
+        if (typeof value === 'object' && value !== null) {
+          if (value['опис'] && nextDetails.length === 0) {
+            return value['опис'];
           }
+
+          const result = this.findDetailRecursively(value, nextDetails);
+          if (result !== null) return result;
         }
-        return null;
+
+        return value; // рядок або інше значення
       }
     }
 
-    // Return the found value or its 'опис' if it exists
-    if (typeof current === 'object' && current['опис']) {
-      return current['опис'];
+    // Якщо нічого не знайдено — пробуємо в кожному об’єкті глибше
+    for (const key of Object.keys(obj)) {
+      const value = obj[key];
+      if (typeof value === 'object' && value !== null) {
+        const result = this.findDetailRecursively(value, lowerDetails);
+        if (result !== null) return result;
+      }
     }
 
-    return current;
+    return null;
   }
-
 }
