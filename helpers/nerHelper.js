@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
-import { processInputWithGPT } from './openAIHelper.js';
+import { OpenAIapi } from './openAIHelper.js';
 
 const nerExamplesFile = yaml.load(fs.readFileSync(path.resolve('./config/ner_examples.yml'), 'utf8'));
 
@@ -20,7 +20,7 @@ function buildNERPrompt(examples) {
 
 async function extractEntitiesFromText(text) {
     const context = buildNERPrompt(nerExamplesFile);
-    const nerEntities = JSON.parse(await processInputWithGPT(context, text));
+    const nerEntities = JSON.parse(await OpenAIapi.processInputWithGPT(context, text));
 
     console.log('[INFO NER]', nerEntities);
     return nerEntities;

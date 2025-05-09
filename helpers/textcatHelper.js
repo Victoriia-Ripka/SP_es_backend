@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { processInputWithGPT } from './openAIHelper.js';
+import { OpenAIapi } from './openAIHelper.js';
 
 const textcatExamplesFile = JSON.parse(fs.readFileSync(path.resolve('./config/textcat_examples.json'), 'utf8'));
 
@@ -18,7 +18,7 @@ function buildTextcatPrompt(examples) {
 
 async function extractIntentFromText(userInput) {
     const context = buildTextcatPrompt(textcatExamplesFile);
-    const intent = await processInputWithGPT(context, userInput);
+    const intent = await OpenAIapi.processInputWithGPT(context, userInput);
 
     console.log('[INFO Intent]', intent);
     return intent;
@@ -26,7 +26,7 @@ async function extractIntentFromText(userInput) {
 
 async function extractIntentFromSystemText(userInput) {
     let context = buildTextcatPrompt(textcatExamplesFile) + 'Ти аналізуєш текст відповіді експертної системи і класифікуєш можливий намір, що випливає з питання. Поверни тільки назву наміру. Приклад: Можу запитати, яка потужність СЕС вам потрібна? => Можу запитати, яка потужність СЕС вам потрібна? => визначити потужність';
-    const intent = await processInputWithGPT(context, userInput);
+    const intent = await OpenAIapi.processInputWithGPT(context, userInput);
 
     console.log('[INFO Intent]', intent);
     return intent;

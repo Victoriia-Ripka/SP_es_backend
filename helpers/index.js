@@ -1,6 +1,6 @@
 import { buildNERPrompt, extractEntitiesFromText } from './nerHelper.js';
 import { extractIntentFromSystemText, extractIntentFromText } from './textcatHelper.js';
-import { processInputWithGPT, getOpenAIResponse } from './openAIHelper.js'
+import { OpenAIapi } from './openAIHelper.js'
 import { ctrlWrapper } from './CtrlWrapper.js';
 
 function verifyNumberOrString(value) {
@@ -82,8 +82,7 @@ function checkIfUserDataChanged(pv_user_data, updated_user_data) {
 
 export const Helpers = {
     buildNERPrompt,
-    processInputWithGPT,
-    getOpenAIResponse,
+    OpenAIapi,
     verifyNumberOrString,
     isUnknownAnswer,
     createInstruction,
