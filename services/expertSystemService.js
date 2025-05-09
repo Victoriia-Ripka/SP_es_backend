@@ -1,17 +1,15 @@
 import { Helpers } from '../helpers/index.js';
-import { UserIntentService } from './userIntentService.js'
 import { KBService } from './knowledgeBaseService.js'
 import { LogicalMachineService } from './logicalMachineService.js';
 import { DBService } from './dataBaseService.js';
 import { CalculatorService } from './calculatorService.js';
-import { AssistantService } from './assistantService.js';
 
 const lmService = new LogicalMachineService();
 const kbSerice = new KBService();
 const dbService = new DBService();
 
 const started_pv_user_data = {
-    intent: "", // актуальний намір користувача
+    intent: " ", // актуальний намір користувача
     data_designing_pv: {
         pv_power: 0,
         pv_instalation_place: '',
@@ -30,11 +28,7 @@ const started_pv_user_data = {
         is_exist_money_limit: false
     },
 
-    cache: {
-        history: [],
-        pv_type: "",
-        original_intent: '' // оригінальний намір експертної системи
-    },
+    cache: [],
     messagesCount: 0
 }
 
@@ -68,12 +62,11 @@ async function createPVdesign(pvData) {
 
     // 1.1 get needed PV elements
     const pvTypesData = kbSerice.getKnowledge("СЕС", "види");
-    const pvElements = pvTypesData[pv_type]["елементи системи"];
-    // const pvExtraElements = pvTypesData[pv_type]["додаткові елементи системи"];
+    const pvElements = pvTypesData[pv_type]["основні компоненти"];
+    // const pvExtraElements = pvTypesData[pv_type]["додаткові компоненти"];
 
     // 1.2 get insollation data for the region
     const regionInsolationData = kbSerice.getKnowledge("інсоляція", pv_location);
-    console.log(regionInsolationData)
     const yearRegionInsolation = regionInsolationData["рік"];
     const monthRegionInsolationRange = regionInsolationData["по місяцям"];
 
@@ -387,115 +380,87 @@ async function createPVdesign(pvData) {
 
 // TODO: перевизначення наміру після заповнення поля або після відхилення від головного наміру
 async function processUserInput(userInput, pv_user_data) {
-    console.log("[INFO] process user input START:", pv_user_data);
+    console.log("[INFO] process user input START:", pv_user_data.cache, pv_user_data.intent);
 
-    const nerEntities = await Helpers.extractEntitiesFromText(userInput);
-    let { intent, originalIntent } = await UserIntentService.determineUserIntent(userInput, pv_user_data, nerEntities);
+    const nerEntities = await Helpers.entityHelper.extractEntitiesFromText(userInput);
+    const cache = [...pv_user_data.cache];
 
-    let param;
-    if (intent.includes("впевненість")) {
-        param = intent;
-        pv_user_data["intent"] = originalIntent;
-
-        console.log("якщо є певність то отримуємо or_intent: ", pv_user_data["intent"], originalIntent)
-    } else {
-        pv_user_data["intent"] = intent;
+    let answer;
+    try {
+        const knowledge = kbSerice.getKnowledge(nerEntities, cache);
+        answer = knowledge;
+    } catch (err) {
+        console.log(err)
+        answer = "На жаль, не вдалося знайти інформацію за вашим запитом. Запитайте більш прецизійно. ";
     }
 
-    let answer, updated_user_data;
+    // pv_user_data.cache.push({ field, detail });
 
-    switch (pv_user_data["intent"]) {
-        case "визначити потужність":
-            ({ answer, updated_user_data } = await AssistantService.handlePowerIntent(userInput, pv_user_data, nerEntities));
-            break;
+    return {
+        answer,
+        updated_user_data: pv_user_data
+    };
 
-        case "визначити площу СЕС":
-            ({ answer, updated_user_data } = await AssistantService.handleAreaIntent(userInput, pv_user_data, nerEntities));
-            break;
+    // let answer, updated_user_data;
 
-        case "визначити місце монтажу":
-            ({ answer, updated_user_data } = await AssistantService.handlePlaceIntent(userInput, pv_user_data, nerEntities));
-            break;
+    // switch (pv_user_data["intent"]) {
+    //     case "визначити потужність":
+    //         ({ answer, updated_user_data } = await AssistantService.handlePowerIntent(userInput, pv_user_data, nerEntities, cache));
+    //         break;
 
-        case "визначити автономність":
-            ({ answer, updated_user_data } = await AssistantService.handleConfidanceIntent(userInput, pv_user_data, param, "autonomy"));
-            break;
+    //     case "визначити площу СЕС":
+    //         ({ answer, updated_user_data } = await AssistantService.handleAreaIntent(userInput, pv_user_data, nerEntities));
+    //         break;
 
-        case "визначити фінансові можливості":
-            ({ answer, updated_user_data } = await AssistantService.handleConfidanceIntent(userInput, pv_user_data, param, "finance"));
-            break;
+    //     case "визначити місце монтажу":
+    //         ({ answer, updated_user_data } = await AssistantService.handlePlaceIntent(userInput, pv_user_data, nerEntities));
+    //         break;
 
-        case "визначити можливість підключення на е-мережі":
-            ({ answer, updated_user_data } = await AssistantService.handleConfidanceIntent(userInput, pv_user_data, param, "power grid"));
-            break;
+    //     case "визначити автономність":
+    //         // ({ answer, updated_user_data } = await AssistantService.handleConfidanceIntent(userInput, pv_user_data, confidence, "autonomy"));
+    //         break;
 
-        case "визначити місцевість":
-            // ({ answer, updated_user_data } = await AssistantService.handleAutonomyIntent(param, pv_user_data));
-            break;
+    //     case "визначити фінансові можливості":
+    //         // ({ answer, updated_user_data } = await AssistantService.handleConfidanceIntent(userInput, pv_user_data, confidence, "finance"));
+    //         break;
 
-        case "визначити нахил":
-            // ({ answer, updated_user_data } = await AssistantService.handleAutonomyIntent(param, pv_user_data));
-            break;
+    //     case "визначити можливість підключення на е-мережі":
+    //         // ({ answer, updated_user_data } = await AssistantService.handleConfidanceIntent(userInput, pv_user_data, confidence, "power grid"));
+    //         break;
 
-        case "визначити орієнтацію":
-            // ({ answer, updated_user_data } = await AssistantService.handleAutonomyIntent(param, pv_user_data));
-            break;
+    //     case "визначити нахил":
+    //         // ({ answer, updated_user_data } = await AssistantService.handleAutonomyIntent(confidence, pv_user_data));
+    //         break;
 
-        case "інформація":
-            answer = await AssistantService.giveInformationFromKB(nerEntities, userInput, pv_user_data);
-            updated_user_data = { ...pv_user_data };
-            break;
+    //     case "визначити орієнтацію":
+    //         // ({ answer, updated_user_data } = await AssistantService.handleAutonomyIntent(confidence, pv_user_data));
+    //         break;
 
-        case 'привітання':
-            answer = "Привіт.";
-            updated_user_data = { ...pv_user_data };
-            break;
+    //     case "інформація":
+    //         answer = await AssistantService.giveInformationFromKB(nerEntities, userInput, pv_user_data);
+    //         updated_user_data = { ...pv_user_data };
+    //         break;
 
-        // case 'прощання':
-        //     answer = "Бувай";
-        //     updated_user_data = { ...pv_user_data };
-        //     break;
+    //     case 'привітання':
+    //         answer = "Привіт.";
+    //         updated_user_data = { ...pv_user_data };
+    //         break;
 
-        default:
-            answer = "Вибач, я тебе не зрозумів.";
-            updated_user_data = { ...pv_user_data };
-            break;
-    }
+    //     // case 'прощання':
+    //     //     answer = "Бувай";
+    //     //     updated_user_data = { ...pv_user_data };
+    //     //     break;
 
-    let context;
+    //     case ' ':
+    //     default:
+    //         answer = "Вибач, я тебе не зрозумів.";
+    //         updated_user_data = { ...pv_user_data };
+    //         break;
+    // }
 
-    // UPDATE USER INTENT AND ORIGINAL INTENT
-    if (pv_user_data["intent"] !== originalIntent) {
-        // відновлюємо оригінальний намір від системи і задаємо питання про нього
-        console.log("відпрацьовує, якщо користувач змінив намір особисто");
-        // console.log(intent, originalIntent)
-        updated_user_data['intent'] = originalIntent;
-        context = 'Задай питання щоб визначити значення у намірі користувача, що записаний в intent';
-        const question = await AssistantService.createNextQuestion(updated_user_data, context);
-        answer = answer + " " + question;
+    // console.log("[INFO] process user input END:", updated_user_data.cache, updated_user_data.intent);
 
-    } else {
-        // намір не змінювався, тому від питання системи змінюємо намір і оригінальний намір
-        const isUserDataChanged = Helpers.checkIfUserDataChanged(pv_user_data, updated_user_data);
-        // console.log("відпрацьовує, якщо намір залишився сталим. чи змінилися дані?", isUserDataChanged);
-        if (isUserDataChanged) {
-            updated_user_data['intent'] = '';
-            updated_user_data = UserIntentService.changeOriginalIntent(updated_user_data, '');
-
-            context = 'Задай 1 питання до користувача щодо 1 параметра СЕС,що залишилися незаповненими в обʼєкті pv_user_data.'
-        } else {
-
-            context = 'Задай питання щоб визначити значення у намірі користувача, що записаний в intent';
-        }
-
-        const question = await createNextQuestion(updated_user_data, context);
-        answer = answer + " " + question;
-        updated_user_data = await UserIntentService.changeUserIntentFromSystem(answer, updated_user_data);
-    }
-
-    console.log("[INFO] process user input END:", updated_user_data);
-
-    return { answer, updated_user_data };
+    // return { answer, updated_user_data };
 }
 
 export const ExpertSystemService = {

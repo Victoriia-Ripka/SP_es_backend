@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { Helpers } from '../helpers/index.js';
 
 export class KBService {
   constructor() {
@@ -12,46 +13,111 @@ export class KBService {
     };
   }
 
+  getKnowledge(nerEntities, cache) {
+    let field = Helpers.entityHelper.identifyMainField(nerEntities); // "фотопанелі", "СЕС"
 
-  loadKnowledgeBase(field, detail = '') {
+    // console.log(cache)
+    if (!field) {
+      // get field from cache
+
+      if (!field) throw new Error(`Не визначено поля знань`);
+    }
+    console.log("[INFO] field ", field)
+
+    const fullData = this.loadKnowledgeBase(field);
+    const kb = fullData[field];
+
+    const details = Helpers.entityHelper.identifyDetailFromEntities(nerEntities, kb); //"ефективність", "типи"
+    console.log("[INFO] detail ", details)
+
+    if (!details) {
+      return `${kb?.назва || field}: ${kb?.опис?.join(', ') || 'немає опису.'}`;
+    }
+
+    const result = this.findDetailRecursively(kb, details);
+    if (!result) throw new Error(`Не знайдено інформації для: ${details}`);
+
+    return Array.isArray(result) ? result.join('\n') : result;
+  }
+
+  loadKnowledgeBase(field) {
     const relativePath = this.paths[field.trim()];
-
     if (!relativePath) {
-      throw new Error(`Knowledge base not found for field: ${field}`);
-    } 
+      throw new Error(`Помилка під час отримання знань (файл не знайдено): ${field}`);
+    }
 
     const knowledgePath = path.resolve(relativePath);
     const raw = fs.readFileSync(knowledgePath, 'utf-8');
     const detailInfoJSON = JSON.parse(raw);
+    return detailInfoJSON;
+  }
 
-    const trimmedField = field.trim();
-    const trimmedDetail = detail.trim();
+  // тільки одний можливий "нюанс"
+  // findDetailRecursively(obj, detail) {
+  //   if (typeof obj !== 'object' || obj === null) return null;
 
-    if (detail) {
-      // Якщо є уточнення — беремо конкретну характеристику
-      return detailInfoJSON[trimmedField][trimmedDetail];
-    } else {
-      // Якщо немає — беремо загальну інформацію
-      const info = detailInfoJSON[trimmedField];
-      return `${info['назва']} ${info['завдання']}`;
+  //   for (const key in obj) {
+  //     // console.log("[INFO]", key, detail, key.trim().toLowerCase() === detail.trim().toLowerCase())
+  //     if (key.trim().toLowerCase() === detail.trim().toLowerCase()) {
+  //       const value = obj[key];
+
+  //       console.log(value)
+
+  //       // Якщо знайдений ключ містить опис — повертаємо опис
+  //       if (typeof value === 'object' && value['опис']) {
+  //         return value['опис'];
+  //       }
+
+  //       // Якщо це просто текст/масив — повертаємо значення
+  //       if (typeof value === 'string' || Array.isArray(value)) {
+  //         return value;
+  //       }
+  //     }
+
+  //     // Рекурсивно проходимо вкладені об'єкти
+  //     const nested = this.findDetailRecursively(obj[key], detail);
+  //     if (nested !== null) return nested;
+  //   }
+
+  //   return null;
+  // }
+
+  findDetailRecursively(obj, details) {
+    if (!Array.isArray(details) || details.length === 0 || typeof obj !== 'object' || obj === null) {
+      return null;
     }
-  }
 
-  getKnowledge(field, detail = '') {
-    try {
-      return this.loadKnowledgeBase(field, detail);
-    } catch (err) {
-      throw new Error(`Не вдалося завантажити базу знань для: ${field}`);
+    let current = obj;
+
+    for (const detail of details) {
+      let found = false;
+
+      for (const key of Object.keys(current)) {
+        if (key.trim().toLowerCase() === detail.trim().toLowerCase()) {
+          current = current[key];
+          found = true;
+          break;
+        }
+      }
+
+      if (!found) {
+        // Try going deeper into nested objects even if key doesn't match at this level
+        for (const key of Object.keys(current)) {
+          if (typeof current[key] === 'object') {
+            const result = this.findDetailRecursively(current[key], [detail, ...details.slice(details.indexOf(detail) + 1)]);
+            if (result !== null) return result;
+          }
+        }
+        return null;
+      }
     }
-  }
 
-  getContextFromCache(pv_user_data) {
-    return pv_user_data?.cache?.history?.at(-1) ?? null;
-  }
+    // Return the found value or its 'опис' if it exists
+    if (typeof current === 'object' && current['опис']) {
+      return current['опис'];
+    }
 
-  getLastField(pv_user_data) {
-    const context = this.getContextFromCache(pv_user_data);
-    return context?.field ?? null;
+    return current;
   }
 
 }
