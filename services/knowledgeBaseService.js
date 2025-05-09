@@ -13,6 +13,12 @@ export class KBService {
     };
   }
 
+  getKnowledgeForDesign(field, detail) {
+    const fullData = this.loadKnowledgeBase(field);
+    const kb = fullData[field];
+    return kb[detail];
+  }
+
   getKnowledge(nerEntities, cache) {
     let field = Helpers.entityHelper.identifyMainField(nerEntities); // "фотопанелі", "СЕС"
 
