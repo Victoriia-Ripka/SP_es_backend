@@ -43,11 +43,14 @@ function identifyMainField(entities) {
 }
 
 function identifyDetailFromEntities(entities, kb) {
-    const details = []
-    const possibleDetails = extractPossibleDetails(kb);
+    const details = [];
+    const possibleDetails = extractPossibleDetails(kb).map(d => d.trim().toLowerCase());
 
     for (let ent of entities) {
-        if (possibleDetails.includes(ent.label)) details.push(ent.label);
+        const label = ent.label.trim().toLowerCase();
+        if (possibleDetails.includes(label)) {
+            details.push(label);
+        }
     }
 
     return details;

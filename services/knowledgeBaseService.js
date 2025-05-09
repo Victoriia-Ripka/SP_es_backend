@@ -28,7 +28,7 @@ export class KBService {
     const kb = fullData[field];
 
     const details = Helpers.entityHelper.identifyDetailFromEntities(nerEntities, kb); //"ефективність", "типи"
-    console.log("[INFO] detail ", details)
+    console.log("[INFO] details ", details)
 
     if (!details) {
       return `${kb?.назва || field}: ${kb?.опис?.join(', ') || 'немає опису.'}`;
