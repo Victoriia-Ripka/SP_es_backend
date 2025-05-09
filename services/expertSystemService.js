@@ -9,7 +9,6 @@ const kbSerice = new KBService();
 const dbService = new DBService();
 
 const started_pv_user_data = {
-    intent: " ", // актуальний намір користувача
     data_designing_pv: {
         pv_power: 0,
         pv_instalation_place: '',
@@ -380,7 +379,7 @@ async function createPVdesign(pvData) {
 
 // TODO: перевизначення наміру після заповнення поля або після відхилення від головного наміру
 async function processUserInput(userInput, pv_user_data) {
-    console.log("[INFO] process user input START:", pv_user_data.cache, pv_user_data.intent);
+    console.log("[INFO] process user input START:", pv_user_data.cache);
 
     const nerEntities = await Helpers.entityHelper.extractEntitiesFromText(userInput);
     const cache = [...pv_user_data.cache];
@@ -398,69 +397,8 @@ async function processUserInput(userInput, pv_user_data) {
 
     return {
         answer,
-        updated_user_data: pv_user_data
+        updated_user_data: {...pv_user_data, cache: [...nerEntities]}
     };
-
-    // let answer, updated_user_data;
-
-    // switch (pv_user_data["intent"]) {
-    //     case "визначити потужність":
-    //         ({ answer, updated_user_data } = await AssistantService.handlePowerIntent(userInput, pv_user_data, nerEntities, cache));
-    //         break;
-
-    //     case "визначити площу СЕС":
-    //         ({ answer, updated_user_data } = await AssistantService.handleAreaIntent(userInput, pv_user_data, nerEntities));
-    //         break;
-
-    //     case "визначити місце монтажу":
-    //         ({ answer, updated_user_data } = await AssistantService.handlePlaceIntent(userInput, pv_user_data, nerEntities));
-    //         break;
-
-    //     case "визначити автономність":
-    //         // ({ answer, updated_user_data } = await AssistantService.handleConfidanceIntent(userInput, pv_user_data, confidence, "autonomy"));
-    //         break;
-
-    //     case "визначити фінансові можливості":
-    //         // ({ answer, updated_user_data } = await AssistantService.handleConfidanceIntent(userInput, pv_user_data, confidence, "finance"));
-    //         break;
-
-    //     case "визначити можливість підключення на е-мережі":
-    //         // ({ answer, updated_user_data } = await AssistantService.handleConfidanceIntent(userInput, pv_user_data, confidence, "power grid"));
-    //         break;
-
-    //     case "визначити нахил":
-    //         // ({ answer, updated_user_data } = await AssistantService.handleAutonomyIntent(confidence, pv_user_data));
-    //         break;
-
-    //     case "визначити орієнтацію":
-    //         // ({ answer, updated_user_data } = await AssistantService.handleAutonomyIntent(confidence, pv_user_data));
-    //         break;
-
-    //     case "інформація":
-    //         answer = await AssistantService.giveInformationFromKB(nerEntities, userInput, pv_user_data);
-    //         updated_user_data = { ...pv_user_data };
-    //         break;
-
-    //     case 'привітання':
-    //         answer = "Привіт.";
-    //         updated_user_data = { ...pv_user_data };
-    //         break;
-
-    //     // case 'прощання':
-    //     //     answer = "Бувай";
-    //     //     updated_user_data = { ...pv_user_data };
-    //     //     break;
-
-    //     case ' ':
-    //     default:
-    //         answer = "Вибач, я тебе не зрозумів.";
-    //         updated_user_data = { ...pv_user_data };
-    //         break;
-    // }
-
-    // console.log("[INFO] process user input END:", updated_user_data.cache, updated_user_data.intent);
-
-    // return { answer, updated_user_data };
 }
 
 export const ExpertSystemService = {

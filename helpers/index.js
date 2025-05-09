@@ -1,5 +1,4 @@
 import { entityHelper } from './nerHelper.js';
-import { extractIntentFromSystemText, extractIntentFromText } from './textcatHelper.js';
 import { OpenAIapi } from './openAIHelper.js'
 import { ctrlWrapper } from './CtrlWrapper.js';
 
@@ -63,12 +62,10 @@ function createInstruction(pv_user_data, knowledge) {
 
 export const Helpers = {
     OpenAIapi,
+    entityHelper,
     verifyNumberOrString,
     isUnknownAnswer,
     createInstruction,
-    entityHelper,
-    extractIntentFromText,
-    extractIntentFromSystemText,
     extractNumber,
     isNumberAnswer,
     isCorrectMeasureUnits,
