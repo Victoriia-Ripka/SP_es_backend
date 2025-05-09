@@ -20,8 +20,8 @@ function setPVtype(req, res) {
 
 async function designPV(req, res) {
     const { pvData } = req.body;
-    const { answer, pv, principalElementsData } = await ExpertSystemService.createPVdesign(pvData);
-    res.status(200).json({ answer, pv, principalElementsData });
+    const { answer, pv } = await ExpertSystemService.createPVdesign(pvData);
+    res.status(200).json({ answer, pv });
 }
 
 export default {
