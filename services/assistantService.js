@@ -1,43 +1,41 @@
 import { Helpers } from '../helpers/index.js';
+import { OpenAIapi } from '../helpers/openAIHelper.js';
 import { KBService } from './knowledgeBaseService.js';
 
 const kbSerice = new KBService();
+
 // function handle визначити потужність СЕС
 // TODO: можливість обробляти Вт у кВт
-// TODO: third option with KB
-async function handlePowerIntent(userInput, pv_user_data, nerEntities) {
-    const content = 'Якщо повідомлення користувача містить число (цифрами або словами) - поверни true. Інакше поверни false. Поверни тільки "true" або "false".';
-    const processedIsANumber = await Helpers.processInputWithGPT(content, userInput);
+async function handlePowerIntent(userInput, pv_user_data, nerEntities, cache) {
+    // const content = 'Якщо повідомлення користувача містить число (цифрами або словами) - поверни true. Інакше поверни false. Поверни тільки "true" або "false".';
+    // const processedIsANumber = await Helpers.processInputWithGPT(content, userInput);
+
+    const knowledge = kbSerice.getKnowledge("СЕС", "потужність");
+    console.log(knowledge)
 
     let answer, updated_user_data;
 
-    if (processedIsANumber === 'true') {
-        // перевірка на одиниці вимірювання
-        const includesCorrectUnits = Helpers.isCorrectMeasureUnits(nerEntities, ["Вт", "кВт", "вт", "квт"]);
-        if (!includesCorrectUnits) {
-            answer = "Для визначення потужності потрібні дані у Вт або кВт";
-            return { answer, updated_user_data: pv_user_data };
-        }
-
-        // TODO: вийняти число, що написано словами в pvPower
-        const pvPower = Helpers.extractNumber(userInput);
-
-        if (pvPower > 0 && pvPower <= 15) {
-            answer = `Потужність СЕС визначена як ${pvPower} кВт.`;
-            updated_user_data = rewritePVUserData(pv_user_data, pvPower, "pv_power");
-        } else {
-            answer = "Я можу запропонувати СЕС тільки до 15кВт.";
-            updated_user_data = { ...pv_user_data };
-        }
-
-    } else {
-        // TODO: додати логіку (так само як у handleAreaIntent)
-        answer = "third else.";
-        updated_user_data = { ...pv_user_data };
-        console.log("third option: ", answer, updated_user_data);
+    if (!nerEntities) {
+        const content = `Дай відповідь базуючись на знаннях. Не додавай своєї інформації. Знання: ${knowledge["опис"]}`;
+        answer = await OpenAIapi.processInputWithGPT(content, value);
     }
 
-    return { answer, updated_user_data };
+    // if (processedIsANumber === 'true') {
+    //     // перевірка на одиниці вимірювання
+    //     const includesCorrectUnits = Helpers.isCorrectMeasureUnits(nerEntities, ["Вт", "кВт", "вт", "квт"]);
+    //     if (!includesCorrectUnits) {
+    //         answer = "Для визначення потужності потрібні дані у Вт або кВт";
+    //         return { answer, updated_user_data: pv_user_data };
+    //     }
+
+    // } else {
+    //     // TODO: додати логіку (так само як у handleAreaIntent)
+    //     answer = "third else.";
+    //     updated_user_data = { ...pv_user_data };
+    //     console.log("third option: ", answer, updated_user_data);
+    // }
+
+    return { answer, updated_user_data: { ...pv_user_data } };
 }
 
 // function handle визначити площу СЕС
@@ -83,17 +81,9 @@ async function handlePlaceIntent(userInput, pv_user_data, nerEntities) {
 
     let answer, updated_user_data;
 
-    if (placeEnt) {
-        const context = 'Опрацюй текст таким чином, щоб повернути тільки "дах" або "земля". Біля будинку означає на землі. Нічого більше не пиши.';
-        const processedPlace = await Helpers.processInputWithGPT(context, placeEnt.text);
-        answer = `Місце монтажу визначено як ${processedPlace}.`;
-        updated_user_data = rewritePVUserData(pv_user_data, processedPlace, "pv_instalation_place");
-    } else {
-        // TODO: додати логіку (так само як у handlePowerIntent)
-        answer = "назва більш конкретно місце монтажу";
-        updated_user_data = { ...pv_user_data };
-        console.log("third option: ", answer, updated_user_data);
-    }
+    answer = "назва більш конкретно місце монтажу";
+    updated_user_data = { ...pv_user_data };
+    console.log("third option: ", answer, updated_user_data);
 
     return { answer, updated_user_data };
 }
@@ -130,18 +120,6 @@ async function handleConfidanceIntent(userInput, pv_user_data, param, field) {
         console.log("param from GPT: ", param);
     }
 
-    if (param === 'позитивна впевненість') {
-        answer = answerDataSet[field]["true"];
-        updated_user_data = rewritePVUserData(pv_user_data, true, answerDataSet[field]["pv_data_field"]);
-    } else if (param === 'негативна впевненість') {
-        answer = answerDataSet[field]["false"];
-        updated_user_data = rewritePVUserData(pv_user_data, false, answerDataSet[field]["pv_data_field"]);
-    } else if (param === 'нейтральна впевненість') {
-        // TODO: connect to KB (field: PV, aspect: finance)
-        answer = answerDataSet[field]["neutral"];
-        updated_user_data = { ...pv_user_data };
-    }
-
     return { answer, updated_user_data }
 }
 
@@ -163,14 +141,6 @@ async function createNextQuestion(pv_user_data, context) {
 }
 
 
-
-function rewritePVUserData(pv_user_data, value, fieldName) {
-    return {
-        ...pv_user_data,
-        [fieldName]: value
-    };
-}
-
 async function giveInformationFromKB(nerEntities, userInput, pv_user_data) {
     let field = '';
     let detail = '';
@@ -186,7 +156,7 @@ async function giveInformationFromKB(nerEntities, userInput, pv_user_data) {
     let answer;
 
     if (!field) {
-        field = KBService.getLastField(pv_user_data);
+        field = getLastField(pv_user_data);
 
         if (!field) {
             answer = "Не знайдено основне поле для бази знань (наприклад, СЕС).";
@@ -194,12 +164,41 @@ async function giveInformationFromKB(nerEntities, userInput, pv_user_data) {
         }
     }
 
-    const knowledge = KBService.getKnowledge(field, detail);
+    const knowledge = kbSerice.getKnowledge(field, detail);
     console.log("!!! knowledge: ", knowledge);
     const instructions = Helpers.createInstruction(pv_user_data, knowledge);
     answer = await Helpers.getOpenAIResponse(instructions, userInput);
 
     return answer;
+}
+
+function getContextFromCache(pv_user_data) {
+    return pv_user_data?.cache?.at(-1) ?? null;
+}
+
+function getLastField(pv_user_data) {
+    const context = getContextFromCache(pv_user_data);
+    return context?.field ?? null;
+}
+
+// Function to determine user intent
+async function determineUserIntent(userInput, pv_user_data, nerEntities) {
+    const currentIntentFromUserInput = await Helpers.extractIntentFromText(userInput);
+    const previousIntentFromUser = pv_user_data["intent"];
+
+    console.log(currentIntentFromUserInput, previousIntentFromUser)
+
+    // Якщо користувач не знає або відповів числом — залишаємо попередній намір
+    if (Helpers.isUnknownAnswer(nerEntities) || Helpers.isNumberAnswer(nerEntities)) {
+        return { intent: previousIntentFromUser, confidence: null };
+    }
+
+    // Якщо користувач так/ні/і тп..
+    if (currentIntentFromUserInput.includes("впевненість")) {
+        return { intent: previousIntentFromUser, confidence: currentIntentFromUserInput };
+    }
+
+    return { intent: currentIntentFromUserInput, confidence: null };
 }
 
 export const AssistantService = {

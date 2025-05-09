@@ -1,4 +1,4 @@
-import { buildNERPrompt, extractEntitiesFromText } from './nerHelper.js';
+import { entityHelper } from './nerHelper.js';
 import { extractIntentFromSystemText, extractIntentFromText } from './textcatHelper.js';
 import { OpenAIapi } from './openAIHelper.js'
 import { ctrlWrapper } from './CtrlWrapper.js';
@@ -61,38 +61,16 @@ function createInstruction(pv_user_data, knowledge) {
     }
 }
 
-async function transformStringToNumber(value) {
-    const content = 'Користувач написав число словами. Твоя задача повернути це число цифрами. Відповідь повинна містити тільки число';
-    const processedUserInputNumber = await processInputWithGPT(content, value);
-    return isNaN(processedUserInputNumber) ? value : processedUserInputNumber;
-}
-
-function checkIfUserDataChanged(pv_user_data, updated_user_data) {
-    const fields = [
-        'pv_power',
-        'pv_area',
-        'pv_instalation_place',
-        'roof_tilt',
-        'roof_orientation',
-        'pv_location'
-    ];
-
-    return fields.some(field => pv_user_data[field] !== updated_user_data[field]);
-}
-
 export const Helpers = {
-    buildNERPrompt,
     OpenAIapi,
     verifyNumberOrString,
     isUnknownAnswer,
     createInstruction,
-    transformStringToNumber,
-    extractEntitiesFromText,
+    entityHelper,
     extractIntentFromText,
     extractIntentFromSystemText,
     extractNumber,
     isNumberAnswer,
     isCorrectMeasureUnits,
-    checkIfUserDataChanged,
     ctrlWrapper
 };
