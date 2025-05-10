@@ -61,8 +61,8 @@ async function createPVdesign(pvData) {
 
     // 1.1 get needed PV elements
     const pvTypesData = kbSerice.getKnowledgeForDesign("СЕС", "види");
-    const pvElements = pvTypesData[pv_type]["основні компоненти"];
-    // const pvExtraElements = pvTypesData[pv_type]["додаткові компоненти"];
+    const pvElements = pvTypesData[pv_type]["компоненти"]["основні"]["опис"];
+    // const pvExtraElements = pvTypesData[pv_type]["компоненти"]["додаткові"]["опис"];
 
     // 1.2 get insollation data for the region
     const regionInsolationData = kbSerice.getKnowledgeForDesign("інсоляція", pv_location);
