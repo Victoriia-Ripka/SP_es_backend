@@ -379,8 +379,6 @@ async function createPVdesign(pvData) {
 
 // TODO: перевизначення наміру після заповнення поля або після відхилення від головного наміру
 async function processUserInput(userInput, pv_user_data) {
-    console.log("[INFO] process user input START:", pv_user_data.cache);
-
     const nerEntities = await Helpers.entityHelper.extractEntitiesFromText(userInput);
     const cache = [...pv_user_data.cache];
 

@@ -2,50 +2,6 @@ import { entityHelper } from './nerHelper.js';
 import { OpenAIapi } from './openAIHelper.js'
 import { ctrlWrapper } from './CtrlWrapper.js';
 
-function verifyNumberOrString(value) {
-    const num = parseFloat(value);
-    return isNaN(num) ? value : num;
-}
-
-function extractNumber(text) {
-    const cleanedText = text.replace(',', '.');
-    const match = cleanedText.match(/[-+]?[0-9]*\.?[0-9]+/);
-    if (match) {
-        return Number(match[0]);
-    }
-    return null;
-}
-
-// function чи текст містить невизначеність
-function isUnknownAnswer(nerEntities) {
-    return nerEntities.some(entity => entity.label === 'невідомо');
-}
-
-// function чи текст містить число
-function isNumberAnswer(nerEntities) {
-    return nerEntities.some(entity => entity.label === 'число');
-}
-
-// Функція для перевірки одиниць вимрювання
-function isCorrectMeasureUnits(nerEntities, correctMeasureUnits) {
-    if (!Array.isArray(nerEntities) || nerEntities.length === 0) {
-        return false;
-    }
-
-    // Фільтруємо тільки ті сутності, що мають label "одиниця вимірювання"
-    const measureEntities = nerEntities.filter(entity => entity.label === 'одиниця вимірювання');
-
-    // Якщо жодної одиниці вимірювання не знайдено
-    if (measureEntities.length === 0) {
-        return false;
-    }
-
-    // Перевіряємо, чи є хоча б одна правильна одиниця вимірювання
-    return measureEntities.some(entity =>
-        correctMeasureUnits.includes(entity.text.trim().toLowerCase())
-    );
-}
-
 function createInstruction(pv_user_data, knowledge) {
     const knowledgeJSON = JSON.stringify(knowledge, null, 2);
 
@@ -63,11 +19,6 @@ function createInstruction(pv_user_data, knowledge) {
 export const Helpers = {
     OpenAIapi,
     entityHelper,
-    verifyNumberOrString,
-    isUnknownAnswer,
     createInstruction,
-    extractNumber,
-    isNumberAnswer,
-    isCorrectMeasureUnits,
     ctrlWrapper
 };

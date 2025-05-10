@@ -61,10 +61,11 @@ function extractPossibleDetails(obj, collected = new Set()) {
     if (typeof obj !== 'object' || obj === null) return collected;
 
     for (const [key, value] of Object.entries(obj)) {
-        if (!/^\d+$/.test(key)) {
-            collected.add(key);
-        }
-        if (typeof value === 'object') {
+        if (typeof value === 'object' && value !== null) {
+            if ('опис' in value) {
+                collected.add(key);
+            }
+            // Рекурсивно спускаємось далі
             extractPossibleDetails(value, collected);
         }
     }

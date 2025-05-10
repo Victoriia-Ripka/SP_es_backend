@@ -36,7 +36,14 @@ export class KBService {
     const fullData = this.loadKnowledgeBase(field);
     const kb = fullData[field];
 
-    const details = Helpers.entityHelper.identifyDetailFromEntities(nerEntities, kb); //"ефективність", "типи"
+    const updatedEntities = nerEntities.map(e => {
+      if (e.label === "кількість осіб") {
+        return { ...e, label: e.text };
+      }
+      return e;
+    });
+
+    let details = Helpers.entityHelper.identifyDetailFromEntities(updatedEntities, kb);
     console.log("[INFO] details ", details)
 
     if (details.length === 0) {
@@ -70,6 +77,11 @@ export class KBService {
 
     for (const key of Object.keys(obj)) {
       const normalizedKey = key.trim().toLowerCase();
+
+      // Пропускаємо числові ключі, якщо це масив (тобто key — індекс масиву)
+      if (Array.isArray(obj) && /^\d+$/.test(key)) {
+        continue;
+      }
 
       if (lowerDetails.includes(normalizedKey)) {
         const value = obj[key];
