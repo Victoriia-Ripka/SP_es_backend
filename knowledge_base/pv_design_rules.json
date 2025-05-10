@@ -3,19 +3,19 @@
         "condition": "pv_instalation_place = 'дах' AND pv_power > 10",
         "factName": "instalation_place",
         "factValue": "земля",
-        "description": "СЕС з потужністю більше 10кВт не розташовується на даху"
+        "description": "СЕС з потужністю більше 10кВт не розташовується на даху. "
     },
     {
         "condition": "pv_instalation_place = 'дах' AND pv_power <= 10",
         "factName": "instalation_place",
         "factValue": "дах",
-        "description": "СЕС з потужністю менше 10кВт можна розташовувати на даху"
+        "description": "СЕС з потужністю менше 10кВт можна розташовувати на даху. "
     },
     {
         "condition": "pv_instalation_place = 'земля' OR pv_power = -1",
         "factName": "instalation_place",
         "factValue": "земля",
-        "description": "СЕС з будь-якою потужністю можна розташовувати на землі"
+        "description": "СЕС з будь-якою потужністю можна розташовувати на землі. "
     },
 
 
@@ -70,46 +70,46 @@
         "condition": "place = 'земля' OR roof_orientation = -1 ",
         "factName": "choosing_optimal_orientation",
         "factValue": 180,
-        "description": "Фотопанелі СЕС на землі розташовуються на південь",
+        "description": "Фотопанелі СЕС на землі розташовуються на південь. ",
         "final": 1
     },
     {
         "condition": "place = 'дах' AND (roof_orientation > 270 OR roof_orientation < 90)",
         "factName": "choosing_optimal_orientation",
         "factValue": "FALSE",
-        "description": "Фотопанелі на даху з цією орієнтацією мають мізерну продуктивність. Монтаж СЕС немає сенсу."
+        "description": "Фотопанелі на даху з цією орієнтацією мають мізерну продуктивність. Монтаж СЕС немає сенсу. "
     },
     {
         "condition": "place = 'дах' AND roof_orientation <= 270 AND roof_orientation >= 90",
         "factName": "choosing_optimal_orientation",
         "factValue": "roof_orientation",
-        "description": "Фотопанелі СЕС на даху з такою орієнтацією дають достатньо хороші результати"
+        "description": "Фотопанелі СЕС на даху з такою орієнтацією дають достатньо хороші результати. "
     },
 
     {
         "condition": "place = 'земля' OR roof_tilt = -1",
         "factName": "set_optinal_angle",
         "factValue": 30,
-        "description": "Фотопанелі СЕС на грунті розташовуються під оптимальним кутом для України: 30*"
+        "description": "Фотопанелі СЕС на грунті розташовуються під оптимальним кутом для України: 30*. "
 
     },
     {
         "condition": "place = 'дах' AND roof_tilt < 15 AND roof_tilt >= 0",
         "factName": "set_optinal_angle",
         "factValue": 15,
-        "description": "Фотопанелі СЕС на пласкому даху розташовуються під кутом 15* для зменшення опору дії вітру"
+        "description": "Фотопанелі СЕС на пласкому даху розташовуються під кутом 15* для зменшення опору дії вітру. "
     },
     {
         "condition": "place = 'дах' AND roof_tilt >= 15 AND roof_tilt < 60",
         "factName": "set_optinal_angle",
         "factValue": "roof_tilt",
-        "description": "Фотопанелі СЕС на даху з помірним схилом розташовуються під данним кутом"
+        "description": "Фотопанелі СЕС на даху з помірним схилом розташовуються під данним кутом. "
     },
     {
         "condition": "place = 'дах' AND roof_tilt >= 60",
         "factName": "set_optinal_angle",
         "factValue": 30,
-        "description": "Фотопанелі СЕС на даху з крутим схилом розташовуються під оптимальним кутом для України: 30* за допомогою додаткових кріплень"
+        "description": "Фотопанелі СЕС на даху з крутим схилом розташовуються під оптимальним кутом для України: 30* за допомогою додаткових кріплень. "
     },
 
 
@@ -117,7 +117,7 @@
         "condition": "panels_place = 'дах' OR panels_place = 'земля'",
         "factName": "get_needed_distance_among_panels",
         "factValue": 0.02,
-        "description": "Між фотопанелями на даху потрібно залишати 2см відстані"
+        "description": "Між фотопанелями на даху потрібно залишати 2см відстані. "
     },
     {
         "condition": "name = 'voltage margin'",
