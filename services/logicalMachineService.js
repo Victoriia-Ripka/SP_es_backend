@@ -4,8 +4,6 @@ import { LogicalMachine } from '../logicalMachine/LogicalMachine.js'
 
 export class LogicalMachineService {
     constructor() {
-        this.isTrigger = true;
-
         this.pvTypeRules = JSON.parse(fs.readFileSync(path.resolve('./knowledge_base/pv_type_rules.json'), 'utf8'));
         this.pvDesignRules = JSON.parse(fs.readFileSync(path.resolve('./knowledge_base/pv_design_rules.json'), 'utf8'));
         this.pvPECRules = JSON.parse(fs.readFileSync(path.resolve('./knowledge_base/pec_rules.json'), 'utf8'));
@@ -19,7 +17,7 @@ export class LogicalMachineService {
 
     determinePVtype(electric_autonomy, electricity_grid_connection, money_limit) {
         this.lm = new LogicalMachine(this.lmOptions);
-        this.lm.rulesImport(this.pvTypeRules, this.isTrigger);
+        this.lm.rulesImport(this.pvTypeRules);
 
         const facts = [
             { name: "is_electric_autonomy_important", value: electric_autonomy ? 'TRUE' : 'FALSE' },
@@ -27,7 +25,7 @@ export class LogicalMachineService {
             { name: "is_exist_money_limit", value: money_limit ? 'TRUE' : 'FALSE' }
         ];
 
-        this.lm.factsImport(facts, this.isTrigger);
+        this.lm.factsImport(facts);
         const res = this.lm.factGet('pv_type');
 
         if (!res) {
@@ -40,14 +38,14 @@ export class LogicalMachineService {
 
     determinePEC(angle, orientation) {
         this.lm = new LogicalMachine(this.lmOptions);
-        this.lm.rulesImport(this.pvPECRules, this.isTrigger);
+        this.lm.rulesImport(this.pvPECRules);
 
         const facts = [
             { name: "angle", value: angle },
             { name: "orientation", value: orientation },
         ];
 
-        this.lm.factsImport(facts, this.isTrigger);
+        this.lm.factsImport(facts);
         const res = this.lm.factGet('define_PEC');
 
         if (!res) {
@@ -60,8 +58,8 @@ export class LogicalMachineService {
 
     findNeedeText(ruleName, facts) {
         this.lm = new LogicalMachine(this.lmOptions);
-        this.lm.rulesImport(this.communicationRules, this.isTrigger);
-        this.lm.factsImport(facts, this.isTrigger);
+        this.lm.rulesImport(this.communicationRules);
+        this.lm.factsImport(facts);
 
         const res = this.lm.factGet(ruleName);
 
@@ -75,8 +73,8 @@ export class LogicalMachineService {
 
     applyPVDesignRuleToFacts(ruleName, facts) {
         this.lm = new LogicalMachine(this.lmOptions);
-        this.lm.rulesImport(this.pvDesignRules, this.isTrigger);
-        this.lm.factsImport(facts, this.isTrigger);
+        this.lm.rulesImport(this.pvDesignRules);
+        this.lm.factsImport(facts);
 
         const res = this.lm.factGet(ruleName);
 
@@ -89,6 +87,7 @@ export class LogicalMachineService {
     }
 
     buildFacts(factsObject) {
+        console.log(factsObject, ":", factsObject.name, factsObject.value)
         return Object.entries(factsObject).map(([name, value]) => ({ name, value }));
     }
 

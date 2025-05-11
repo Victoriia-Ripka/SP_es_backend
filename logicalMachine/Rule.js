@@ -3,9 +3,6 @@ import {
     ERROR_RULE_FACT_NAME_EMPTY,
     ERROR_RULE_FACT_NAME_HAS_SPACES,
     ERROR_RULE_FACT_VALUE_EMPTY,
-    ERROR_RULE_ELSE_FACT_NAME_HAS_SPACES,
-    ERROR_RULE_ELSE_FACT_NAME_ABSENT,
-    ERROR_RULE_ELSE_FACT_VALUE_ABSENT,
     ERROR_RULE_STRING_NO_QUOTE,
     ERROR_RULE_PARENTHESES_1,
     ERROR_RULE_PARENTHESES_2
@@ -63,8 +60,6 @@ class Rule {
      * @param factValue {number|string|null}
      * @param priority {number}
      * @param description {string}
-     * @param factNameElse {string|undefined}
-     * @param factValueElse {number|string|undefined}
      * @param final {number|undefined}
      * @param precondition {string|null|undefined}
      * @param missing {number|string|null}
@@ -72,15 +67,12 @@ class Rule {
     constructor(condition,
         factName, factValue,
         priority, description,
-        factNameElse, factValueElse,
         final, precondition, missing) {
         // init
         this.condition = condition;       // human raw readable text of rule
         this.precondition = precondition !== null ? precondition : undefined; // human raw readable text of precondition
         this.fact = factName;
         this.value = factValue;
-        this.factElse = factNameElse !== null ? factNameElse : undefined;
-        this.valueElse = factValueElse !== null ? factValueElse : undefined;
         if (priority && priority > 0)
             this.priority = priority;
         else
@@ -88,7 +80,7 @@ class Rule {
         if (description)
             this.description = description; // detailed rule description
         else
-            this.description = Rule.createDescription(condition, factName, factValue, factNameElse, factValueElse);
+            this.description = Rule.createDescription(condition, factName, factValue);
         if (final && final >= 1 && final <= 3)
             this.final = final;
         else
@@ -131,16 +123,10 @@ class Rule {
      * @param factName
      * @param factValue
      * @param factElse
-     * @param factNameElse
-     * @param factValueElse
      * @returns {string}
      */
-    static createDescription(condition, factName, factValue, factNameElse, factValueElse) {
-        let postfix = '';
-        if (factNameElse) {
-            postfix = ` / {${factNameElse}: ${factValueElse}}`;
-        }
-        return `${condition} / {${factName}: ${factValue}}${postfix}`;
+    static createDescription(condition, factName, factValue) {
+        return `${condition} / {${factName}: ${factValue}}`;
     }
 
     /**
@@ -196,18 +182,6 @@ class Rule {
         }
         if (value === null || value === undefined) {
             return ERROR_RULE_FACT_VALUE_EMPTY;
-        }
-
-        if (factElse || valueElse) {
-            if (factElse && (valueElse === null || valueElse === undefined)) {
-                return ERROR_RULE_ELSE_FACT_VALUE_ABSENT;
-            }
-            if (valueElse && (factElse === null || factElse === undefined)) {
-                return ERROR_RULE_ELSE_FACT_NAME_ABSENT;
-            }
-            if (regexpWhiteSpaces.test(factElse)) {
-                return ERROR_RULE_ELSE_FACT_NAME_HAS_SPACES;
-            }
         }
 
         return null;

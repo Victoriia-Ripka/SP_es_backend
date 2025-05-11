@@ -1,11 +1,12 @@
 import Fact from "./Fact.js";
 import Rule from "./Rule.js";
-import { 
-    ERROR_STUGNA_SPACE_IN_FACT_NAME, 
-    ERROR_STUGNA_PERIODIC_RULES, 
-    ERROR_FACT_NAME_ABSENT, 
-    ERROR_FACT_NAME_EMPTY, 
-    ERROR_FACT_VALUE_ABSENT } from './Errors.js';
+import {
+    ERROR_SPACE_IN_FACT_NAME,
+    ERROR_PERIODIC_RULES,
+    ERROR_FACT_NAME_ABSENT,
+    ERROR_FACT_NAME_EMPTY,
+    ERROR_FACT_VALUE_ABSENT
+} from './Errors.js';
 
 const regexpWhiteSpaces = /\s+/g;
 
@@ -47,8 +48,9 @@ export class LogicalMachine {
     }
 
     /**
-     * @param brief {string}
-     * @param more {string|null}
+     * додає нотатку про додавання події в _events LM
+     * @param brief {string} - прапорець події
+     * @param more {string|null} - текст помилки
      * @param subject {string|null}
      */
     eventAdd(brief, more, subject) {
@@ -79,26 +81,34 @@ export class LogicalMachine {
     }
 
     /**
+     * перевірка чи факт є відповідним (чи має імʼя факту і значення)
      * @param name {string|null|undefined}
      * @param value {string|number|boolean|null|undefined}
      * @returns {boolean}
      * @private
      */
     _factIsValid(name, value) {
+        // перевірка присутності імені факту
         if (name === null || name === undefined) {
             this.eventAdd('fact error', ERROR_FACT_NAME_ABSENT);
             return false;
         }
+
+        // перевірка присутності значення факту
         name = name.toString();
         let nameTrimmed = name.trim()
         if (nameTrimmed.length === 0) {
             this.eventAdd('fact error', ERROR_FACT_NAME_EMPTY);
             return false;
         }
+
+        // імʼя повинно бути одним словом
         if (regexpWhiteSpaces.test(name)) {
-            this.eventAdd('fact error', ERROR_STUGNA_SPACE_IN_FACT_NAME + name);
+            this.eventAdd('fact error', ERROR_SPACE_IN_FACT_NAME + name);
             return false;
         }
+
+        // значення факту повинно бути присутнім
         if (value === null || value === undefined) {
             this.eventAdd('fact error', ERROR_FACT_VALUE_ABSENT);
             return false;
@@ -107,21 +117,23 @@ export class LogicalMachine {
     }
 
     /**
+     * додавання факту до LM
      * @param name {string|null|undefined}
      * @param value {string|number|boolean|null|undefined}
      * @param description {string|null|undefined}
-     * @param toRegularize {boolean}
      */
-    factAdd({ name, value, description }, isTrigger = true) {
+    factAdd({ name, value, description }) {
         if (!this._factIsValid(name, value)) {
             return
         }
 
+        // створення опису факту
         let subject = description;
         if (!subject) {
             subject = `${name}: ${value}`;
         }
 
+        // заміщення старого факту у LM
         let factNew = new Fact(name, value, subject);
         let factOld = this._facts[name];
         if (factOld) {
@@ -130,10 +142,9 @@ export class LogicalMachine {
         }
         this._facts[name] = factNew;
 
+        // додавання події про доданий факт
         this.eventAdd('fact add', null, subject);
-        if (isTrigger) {
-            this._order();
-        }
+        this._order();
     }
 
     /**
@@ -159,108 +170,21 @@ export class LogicalMachine {
     }
 
     /**
-     * @param name {string}
-     * @returns {string[]}
-     */
-    factGetPredecessorsWanted(name) {
-        let predecessors = [];
-        for (let rule of this._rules) {
-            if (rule.fact === name || rule.factElse === name) {
-                for (let predecessor of rule.variables) {
-                    if (!predecessors.includes(predecessor)) {
-                        predecessors.push(predecessor);
-                    }
-                }
-            }
-        }
-        let childrenAll = []; // may contain duplicates
-        for (let predecessor1 of predecessors) {
-            let children = this.factGetPredecessorsWanted(predecessor1);
-            childrenAll = childrenAll.concat(children);
-        }
-        for (let fact of childrenAll) { // filter duplicates
-            if (!predecessors.includes(fact)) {
-                predecessors.push(fact);
-            }
-        }
-        return predecessors;
-    }
-
-    /**
-     * @param name {string}
-     * @returns {string[]}
-     */
-    factGetPredecessorsUnknown(name) {
-        // find all wanted facts
-        let wanted = this.factGetPredecessorsWanted(name);
-
-        // exclude known facts
-        let unknownWithRules = [];
-        for (let fact of wanted) {
-            if (this._facts[fact] === undefined) {
-                unknownWithRules.push(fact);
-            }
-        }
-
-        // exclude facts that can be produced by the rules
-        let unknownWithoutRules = [];
-        for (let fact of unknownWithRules) {
-            let noRuleForFact = true;
-            for (let rule of this._rules) {
-                if (rule.fact === fact || rule.factElse === fact) {
-                    noRuleForFact = false;
-                    break;
-                }
-            }
-            if (noRuleForFact) {
-                unknownWithoutRules.push(fact);
-            }
-        }
-
-        return unknownWithoutRules;
-    }
-
-    /**
+     * додавання масиву фактів до LM
      * @param facts {Object[]}
-     * @param isTrigger {boolean}
      */
-    factsImport(facts, isTrigger = true) {
+    factsImport(facts) {
         let addedCount = 0;
         for (let fact of facts) {
             if (!this._factIsValid(fact.name, fact.value)) {
                 continue;
             }
-            this.factAdd(fact, false);
+            this.factAdd(fact);
             addedCount++;
         }
-        if (isTrigger && addedCount > 0) {
+        if (addedCount > 0) {
             this._order();
         }
-    }
-
-    /**
-     * @returns {{name: string, value: (number|string), history: string[], changed: boolean}[]}
-     */
-    factsAllAsArray() {
-        return Object.values(this._facts).map(fact => {
-            return {
-                name: fact.name,
-                value: fact.value,
-                history: fact.history,
-                changed: fact.changed
-            }
-        });
-    }
-
-    /**
-     * @returns {object}
-     */
-    factsAllAsMap() {
-        let facts = {};
-        for (let name in this._facts) {
-            facts[name] = this._facts[name].value;
-        }
-        return facts;
     }
 
     /**
@@ -271,7 +195,7 @@ export class LogicalMachine {
     }
 
     /**
-     *
+     * видалення фактів з LM
      */
     factsClear() {
         this._facts = {};
@@ -279,31 +203,29 @@ export class LogicalMachine {
     }
 
     /**
+     * додавання правила до LM 
      * @param condition {string}
      * @param factName {string}
      * @param factValue {string}
      * @param priority {number}
      * @param description {string}
-     * @param factNameElse {string}
-     * @param factValueElse {string}
      * @param final {number}
      * @param precondition {string}
      * @param missing {number|string|null}
-     * @param isTrigger {boolean}
      */
     ruleAdd({ condition,
         factName, factValue,
         priority, description,
-        factNameElse, factValueElse,
         final, precondition, missing
-    }, isTrigger = true) {
-        let ruleError = Rule.validate(condition, factName, factValue, factNameElse, factValueElse);
+    }) {
+        // валідація правила
+        let ruleError = Rule.validate(condition, factName, factValue);
         if (ruleError) {
-            this.eventAdd('rule error', ruleError, description); // validation errors
+            this.eventAdd('rule error', ruleError, description);
             return;
         }
 
-        let rule = new Rule(condition, factName, factValue, priority, description, factNameElse, factValueElse, final, precondition, missing);
+        let rule = new Rule(condition, factName, factValue, priority, description, final, precondition, missing);
         ruleError = rule.getError();
         if (ruleError) {
             let subject = rule.description;
@@ -311,27 +233,27 @@ export class LogicalMachine {
             return
         }
 
+        // додавання правила до списку _rules і сортування їх за пріоритетністю
         this._rules.push(rule);
         this._rules.sort((a, b) => {
-            return a.priority - b.priority; // by priority ASC
+            return a.priority - b.priority; 
         });
+
         this.eventAdd('rule add', null, rule.description);
-        if (isTrigger) {
-            this._order();
-        }
+        this._order();
     }
 
     /**
+     * додавання масиву правил до LM 
      * @param rules {object[]}
-     * @param isTrigger {boolean}
      */
-    rulesImport(rules, isTrigger = true) {
+    rulesImport(rules) {
         for (let rule of rules) {
-            let ruleError = Rule.validate(rule.condition, rule.factName, rule.factValue, rule.factNameElse, rule.factValueElse);
+            let ruleError = Rule.validate(rule.condition, rule.factName, rule.factValue);
             if (ruleError) {
                 let subject = rule.description;
                 if (!subject) {
-                    subject = Rule.createDescription(rule.condition, rule.factName, rule.factValue, rule.factNameElse, rule.factValueElse);
+                    subject = Rule.createDescription(rule.condition, rule.factName, rule.factValue);
                 }
                 this.eventAdd('rule error', ruleError, subject);
                 continue;
@@ -340,9 +262,8 @@ export class LogicalMachine {
             rule.priority = rule.priority ? rule.priority : 1;
             this.ruleAdd(rule, false);
         }
-        if (isTrigger) {
-            this._order();
-        }
+
+        this._order();
     }
 
     /**
@@ -355,8 +276,6 @@ export class LogicalMachine {
                 condition: rule.condition,
                 factName: rule.fact,
                 factValue: rule.value,
-                factNameElse: rule.factElse,
-                factValueElse: rule.valueElse,
                 priority: rule.priority,
                 description: rule.description,
                 final: rule.final
@@ -414,7 +333,7 @@ export class LogicalMachine {
     }
 
     /**
-     * Fix missing facts by default values into temp map
+     * Виправлення значень відсутніх фактів за замовчуванням тимчасово
      * @param factsExisting
      * @param factsMissing
      * @param defaultValue
@@ -431,7 +350,7 @@ export class LogicalMachine {
     }
 
     /**
-     * Regularize all rules and facts
+     * Упорядкування всіх правил та фактів
      */
     _order() {
         this._factsAreOrdered = false;
@@ -509,7 +428,7 @@ export class LogicalMachine {
         }
 
         if (!this._factsAreOrdered && this._toSaveEvents) {
-            this.eventAdd('rules error', ERROR_STUGNA_PERIODIC_RULES);
+            this.eventAdd('rules error', ERROR_PERIODIC_RULES);
         }
     }
 }
