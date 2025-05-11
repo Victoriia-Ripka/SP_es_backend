@@ -7,8 +7,6 @@ export class KBService {
     this.paths = {
       "СЕС": 'knowledge_base/pv.json',
       "фотопанелі": 'knowledge_base/panels.json',
-      // "інвертор": 'knowledge_base/inverters.json',
-      // "АКБ": 'knowledge_base/charges.json',
       "інсоляція": 'knowledge_base/insolation.json'
     };
   }

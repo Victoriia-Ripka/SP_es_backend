@@ -377,8 +377,9 @@ async function createPVdesign(pvData) {
     return { answer: answerFromES, pv: { pv_type, optimalPVPlace, optimalPVOrientation, optimalPVAngle, pvElements, options: threeOptionsWithForecast } };
 }
 
-// TODO: перевизначення наміру після заповнення поля або після відхилення від головного наміру
 async function processUserInput(userInput, pv_user_data) {
+    console.log("[USER INPUT] ", userInput);
+
     const nerEntities = await Helpers.entityHelper.extractEntitiesFromText(userInput);
     const cache = [...pv_user_data.cache];
 
