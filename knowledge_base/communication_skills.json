@@ -27,7 +27,7 @@
     {
         "condition": "not_found = 'angle'",
         "factName": "not_found",
-        "factValue": "Подайте, будь ласка, кут, що є кратний 5-и."
+        "factValue": "Подайте, будь ласка, кут, що є кратний 5-и. "
     },
     {
         "condition": "not_found = 'orientation'",
@@ -38,5 +38,10 @@
         "condition": "options = 'empty'",
         "factName": "no_options",
         "factValue": "На жаль, у нас немає варіантів, щоб вам запропонувати. "
+    },
+    {
+        "condition": "not_found = 'knowledge'",
+        "factName": "not_found",
+        "factValue": "На жаль, не вдалося знайти інформацію за вашим запитом. Запитайте більш прецизійно. "
     }
 ]

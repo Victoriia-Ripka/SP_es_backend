@@ -384,8 +384,10 @@ async function processUserInput(userInput, pv_user_data) {
         const knowledge = kbSerice.getKnowledge(nerEntities, cache);
         answer = knowledge;
     } catch (err) {
+        // return a message in case KB doesn't have information 
+        const { value } = lmService.findNeedeText("not_found", [{ name: 'not_found', value: "knowledge" }]);
+        answer = value;
         console.log(err)
-        answer = "На жаль, не вдалося знайти інформацію за вашим запитом. Запитайте більш прецизійно. ";
     }
 
     return {

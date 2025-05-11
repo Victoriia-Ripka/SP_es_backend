@@ -87,7 +87,6 @@ export class LogicalMachineService {
     }
 
     buildFacts(factsObject) {
-        console.log(factsObject, ":", factsObject.name, factsObject.value)
         return Object.entries(factsObject).map(([name, value]) => ({ name, value }));
     }
 
