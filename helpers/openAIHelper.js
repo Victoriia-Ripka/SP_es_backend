@@ -17,13 +17,4 @@ async function processInputWithGPT(instruction, input) {
     return response.choices[0].message.content.trim();
 }
 
-async function getOpenAIResponse(instructions, input) {
-    const response = await client.responses.create({
-        model: 'gpt-3.5-turbo',
-        instructions,
-        input,
-    });
-    return response.output_text;
-};
-
-export const OpenAIapi = { getOpenAIResponse, processInputWithGPT };
+export const OpenAIapi = { processInputWithGPT };

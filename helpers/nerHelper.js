@@ -27,21 +27,23 @@ async function extractEntitiesFromText(text) {
 }
 
 function identifyMainField(entities) {
+    // визначити, чи сутності містять сферу знань
     const knowledgeFields = entities.filter(
-        entity => typeof entity.label === 'string' && entity.label.includes("поле знань")
+        entity => entity.label.includes("сфера знань")
     );
 
     if (knowledgeFields.length === 0) return null;
 
-    // Повернути перше не-СЕС поле знань
+    // Повернути перше не-СЕС сферу знань
     for (let entity of knowledgeFields) {
         if (entity.text.toLowerCase() !== 'сес') return entity.text;
     }
 
-    // Якщо були лише СЕС
+    // Якщо була лише СЕС
     return knowledgeFields[0].text;
 }
 
+// визначає компоненти знань із сутностей, що можуть належати даній сфері знань
 function identifyDetailFromEntities(entities, kb) {
     const details = [];
     const possibleDetails = extractPossibleDetails(kb).map(d => d.trim().toLowerCase());
@@ -56,7 +58,7 @@ function identifyDetailFromEntities(entities, kb) {
     return details;
 }
 
-// рекурсія для отримання всіх характеристик поля знань
+// рекурсивна функція для отримання всіх компонентів сфери знань
 function extractPossibleDetails(obj, collected = new Set()) {
     if (typeof obj !== 'object' || obj === null) return collected;
 
@@ -71,11 +73,6 @@ function extractPossibleDetails(obj, collected = new Set()) {
     }
 
     return Array.from(collected);
-}
-
-function updateEntitiesWithCache(current, cache) {
-    const cached = cache.flatMap(item => [item.field, item.detail]).filter(Boolean);
-    return [...current.map(e => e.text), ...cached];
 }
 
 export const entityHelper = { extractEntitiesFromText, identifyMainField, identifyDetailFromEntities };

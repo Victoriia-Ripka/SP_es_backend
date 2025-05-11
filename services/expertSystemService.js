@@ -62,7 +62,7 @@ async function createPVdesign(pvData) {
     // 1.1 get needed PV elements
     const pvTypesData = kbSerice.getKnowledgeForDesign("СЕС", "види");
     const pvElements = pvTypesData[pv_type]["компоненти"]["основні"]["опис"];
-    // const pvExtraElements = pvTypesData[pv_type]["компоненти"]["додаткові"]["опис"];
+    const pvExtraElements = pvTypesData[pv_type]["компоненти"]["додаткові"]["опис"];
 
     // 1.2 get insollation data for the region
     const regionInsolationData = kbSerice.getKnowledgeForDesign("інсоляція", pv_location);
@@ -229,7 +229,7 @@ async function createPVdesign(pvData) {
                 beta: betaRad,
                 a: aRad
             });
-            const { orientation, rows, cols, count, distance_between_rows } = fittingResult;
+            const { count } = fittingResult;
 
             // лекція стор. 17
             const totalPVPowerKw = (count * panel.maximum_power_w) / 1000;
@@ -314,14 +314,14 @@ async function createPVdesign(pvData) {
         });
     }
 
-    // 6 create combination with all elements
+    // 5 create combination with all elements
     let combinations = CalculatorService.generateCombinations(suitableElements);
 
     if (pv_type === 'гібридна' || pv_type === 'автономна') {
         combinations = combinations.filter(element => element.charge);
     }
 
-    // 6.1 Сортуємо за ціною
+    // 5.1 Сортуємо за ціною
     const sortedCombinations = combinations.sort((a, b) => a.total_price - b.total_price);
 
     let threeOptions;
@@ -332,7 +332,7 @@ async function createPVdesign(pvData) {
         threeOptions = [...sortedCombinations];
     }
 
-    // 4 insolation forecast for a year 
+    // 6 insolation forecast for a year 
     const { value: systemEfficiency } = lmService.applyPVDesignRuleToFacts('get_coeff', [{ name: "name", value: 'middle PV system efficiency' }]);
 
     const threeOptionsWithForecast = threeOptions.map(option => {
@@ -349,24 +349,20 @@ async function createPVdesign(pvData) {
         };
     });
 
-    // console.log(pvExtraElements)
+    console.log(pvExtraElements)
 
     // 7.0.1, 7.02, 7.03 translate 
-    // const translatedExtraElements = [];
+    const translatedExtraElements = [];
 
-    // for (const elementName of pvExtraElements) {
-    //     const facts = lmService.buildFacts({ name: elementName });
+    for (const elementName of pvExtraElements) {
+        const facts = lmService.buildFacts({ name: elementName });
 
-    //     const { value: translatedValue, history } = await lmService.applyRule("translation", facts);
+        const { value: translatedValue, history } = lmService.applyRule("translation", facts);
 
-    //     translatedExtraElements.push({
-    //         original: elementName,
-    //         translated: translatedValue,
-    //         history
-    //     });
-    // }
+        translatedExtraElements.push(translatedValue);
+    }
 
-    // console.log(translatedExtraElements);
+    console.log(translatedExtraElements);
 
     if (threeOptionsWithForecast.length === 0) {
         // add a message that we don't have suitable options for user
