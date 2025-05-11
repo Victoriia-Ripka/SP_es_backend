@@ -36,11 +36,15 @@ function identifyMainField(entities) {
 
     // Повернути перше не-СЕС сферу знань
     for (let entity of knowledgeFields) {
-        if (entity.text.toLowerCase() !== 'сес') return entity.text;
+        if (entity.text.toLowerCase() !== 'сес') {
+            const field = entity.label.substring("сфера знань ".length);
+            return field;
+        }
     }
 
     // Якщо була лише СЕС
-    return knowledgeFields[0].text;
+    const field = knowledgeFields[0].label.substring("сфера знань ".length);
+    return field;
 }
 
 // визначає компоненти знань із сутностей, що можуть належати даній сфері знань
