@@ -90,7 +90,7 @@ function determinePanelConnectionType(panel, inverter) {
 
         // перевірка на відповідність даному стрінгу панелей до інвертора
         if (totalVoc > maxInputVoltage || totalVmp < mpptMin || totalVmp > mpptMax) {
-            continue; 
+            continue;
         }
 
         const maxParallelStrings = Math.floor(maxCurrent / Imp);
@@ -235,10 +235,53 @@ const generateCombinations = (suitableElements) => {
     return combinations;
 };
 
+function getSuitableCounter(counters, isBidirectional) {
+    // Фільтр додаткових умов
+    const suitableCounters = counters.filter(counter => {
+        if (isBidirectional) {
+            // Перевірка за назвою моделі або типом
+            const model = counter.model?.toLowerCase() || '';
+            const desc = counter.description?.toLowerCase() || '';
+            return model.includes('g3b') || desc.includes('двонаправлений') || desc.includes('bidirectional');
+        }
+        return true; // для off-grid підійде однонаправлений
+    });
+
+    return suitableCounters.length ? suitableCounters[0] : {};
+}
+
+function getSuitableDistributionBoard(distributionBoards, inverter) {
+    const inverterMaxVoltage = inverter.max_input_voltage_v ?? 0;
+    const phases = inverter.phases_count ?? 1;
+
+    // Орієнтовно 4 модулі на кожну фазу — умовно для автоматики
+    const estimatedModuleCount = phases * 4;
+
+    // Фільтрація
+    const suitableBoards = distributionBoards.filter(board => {
+        const boardVoltage = parseFloat(board.max_input_voltage_V);
+        return (
+            boardVoltage >= inverterMaxVoltage &&
+            board.module_count >= estimatedModuleCount
+        );
+    });
+
+    if (!suitableBoards.length) return {};
+
+    // Вибір з найменшим надлишком по модулю
+    return suitableBoards.reduce((best, curr) => {
+        const currSurplus = curr.module_count - estimatedModuleCount;
+        const bestSurplus = best.module_count - estimatedModuleCount;
+        return currSurplus < bestSurplus ? curr : best;
+    });
+}
+
 export const CalculatorService = {
     getFittingPanelCountOnRoof,
     getFittingPanelCountOnGround,
     determinePanelConnectionType,
     getSuitableBatteryChargeCount,
-    generateCombinations
+    generateCombinations,
+    getSuitableCounter,
+    getSuitableDistributionBoard
 }

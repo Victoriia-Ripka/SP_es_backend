@@ -335,7 +335,7 @@ async function createPVdesign(pvData) {
     // 6 insolation forecast for a year 
     const { value: systemEfficiency } = lmService.applyPVDesignRuleToFacts('get_coeff', [{ name: "name", value: 'middle PV system efficiency' }]);
 
-    const threeOptionsWithForecast = threeOptions.map(option => {
+    let threeOptionsWithForecast = threeOptions.map(option => {
         let insolation_forecast = [];
         monthRegionInsolationRange.map(monthInsolation => {
             insolation_forecast.push(Number((Number(option.total_power_kW) * systemEfficiency * monthInsolation * PEC).toFixed(2)));
@@ -349,25 +349,90 @@ async function createPVdesign(pvData) {
         };
     });
 
-    console.log(pvExtraElements)
-
-    // 7.0.1, 7.02, 7.03 translate 
-    const translatedExtraElements = [];
-
-    for (const elementName of pvExtraElements) {
-        const facts = lmService.buildFacts({ name: elementName });
-
-        const { value: translatedValue, history } = lmService.applyRule("translation", facts);
-
-        translatedExtraElements.push(translatedValue);
-    }
-
-    console.log(translatedExtraElements);
-
     if (threeOptionsWithForecast.length === 0) {
         // add a message that we don't have suitable options for user
         const { value } = lmService.findNeedeText("no_options", [{ name: 'options', value: 'empty' }]);
         answerFromES.push([value]);
+    } else {
+        // console.log(threeOptionsWithForecast[0])
+        // console.log(pvExtraElements);
+
+        // 7.0.1, 7.02, 7.03 translate 
+        const translatedExtraElements = [];
+
+        for (const elementName of pvExtraElements) {
+            // const facts = lmService.buildFacts({ name: elementName });
+            const { value: translatedValue } = lmService.applyRule("translation", [{ name: 'name', value: elementName }]);
+            translatedExtraElements.push(translatedValue);
+        }
+
+        console.log(translatedExtraElements); // [ 'counters', 'distribution_boards' ]
+        const enrichedOptions = [];
+
+        for (const option of threeOptionsWithForecast) {
+            const suitableElements = {};
+
+            for (const extraElement of translatedExtraElements) {
+                let params = {};
+
+                switch (extraElement) {
+                    case 'counters': {
+                        const isBidirectional = option.inverter.type === 'on-grid' || option.inverter.type === 'hybrid';
+                        const phases = option.inverter.phases_count;
+                        const current = option.inverter.input_current_a?.[0] ?? 0;
+
+                        params = {
+                            system_nominal_voltage: { $in: phases === 3 ? ['380V'] : ['220V', '230V'] },
+                            max_current: { $gte: current },
+                            measurement_energy: 'active + reactive'
+                        };
+
+                        const elements = await dbService.findElementByName('counters', params);
+
+                        if (!elements || !elements.length) {
+                            suitableElements[extraElement] = {};
+                            continue;
+                        }
+
+                        suitableElements[extraElement] = CalculatorService.getSuitableCounter(elements, isBidirectional);
+                        break;
+                    }
+
+                    case 'distribution_boards': {
+                        const inverter = option.inverter;
+                        const phases = inverter.phases_count ?? 1;
+                        const inverterMaxVoltage = inverter.max_input_voltage_v ?? 0;
+                        const estimatedModuleCount = phases * 4;
+
+                        params = {
+                            max_input_voltage_V: { $gte: inverterMaxVoltage },
+                            module_count: { $gte: estimatedModuleCount }
+                        };
+
+                        const elements = await dbService.findElementByName('distribution_boards', params);
+
+                        if (!elements || !elements.length) {
+                            suitableElements[extraElement] = {};
+                            continue;
+                        }
+
+                        suitableElements[extraElement] = CalculatorService.getSuitableDistributionBoard(elements, inverter);
+                        break;
+                    }
+
+                    // default:
+                    //     suitableElements[extraElement] = {};
+                    //     break;
+                }
+            }
+
+            enrichedOptions.push({
+                ...option,
+                "extra_elements": suitableElements
+            });
+        }
+
+        threeOptionsWithForecast = [...enrichedOptions]
     }
 
     return { answer: answerFromES, pv: { pv_type, optimalPVPlace, optimalPVOrientation, optimalPVAngle, pvElements, options: threeOptionsWithForecast } };
