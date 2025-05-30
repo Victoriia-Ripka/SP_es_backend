@@ -169,7 +169,7 @@ class Rule {
     /**
      * Validate rule inputs
      */
-    static validate(condition, fact, value, factElse, valueElse) {
+    static validate(condition, fact, value) {
         if (!condition) {
             return ERROR_RULE_CONDITION_EMPTY;
         }
@@ -185,13 +185,6 @@ class Rule {
         }
 
         return null;
-    }
-
-    /**
-     * @returns {boolean}
-     */
-    hasElse() {
-        return this.factElse !== null && this.factElse !== undefined;
     }
 
     /**
